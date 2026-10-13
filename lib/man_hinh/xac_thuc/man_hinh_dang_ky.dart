@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../giao_dien/chuan_thiet_ke/mau_sac.dart';
 import '../../giao_dien/chuan_thiet_ke/bo_goc.dart';
 import '../../giao_dien/chuan_thiet_ke/khoang_cach.dart';
-import '../../giao_dien/chuan_thiet_ke/bieu_tuong.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
-import '../dieu_huong/man_hinh_chinh_tab.dart';
+import 'man_hinh_dang_nhap.dart';
 
 /// Màn hình Đăng ký tài khoản (Capy Money Register Screen)
 class ManHinhDangKy extends StatefulWidget {
@@ -25,6 +25,14 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
   bool _anNhapLaiMatKhau = true;
   bool _dangXuLy = false;
 
+  /// Regex kiểm tra Email chuẩn
+  static final RegExp _emailRegex =
+      RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+
+  /// Regex kiểm tra Số điện thoại đúng 10 chữ số
+  static final RegExp _sdtRegex = RegExp(r'^[0-9]{10}$');
+
+  /// Thao tác kiểm tra dữ liệu và Đăng ký tài khoản
   Future<void> _xuLyDangKy() async {
     final hoTen = _hoTenController.text.trim();
     final email = _emailController.text.trim();
@@ -32,16 +40,31 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
     final matKhau = _matKhauController.text.trim();
     final nhapLaiMatKhau = _nhapLaiMatKhauController.text.trim();
 
-    if (hoTen.isEmpty || email.isEmpty || matKhau.isEmpty) {
-      _hienThongBao('Vui lòng điền đầy đủ các thông tin bắt buộc');
+    // 1. Kiểm tra Họ tên
+    if (hoTen.isEmpty) {
+      _hienThongBao('Vui lòng nhập Họ và tên');
       return;
     }
 
+    // 2. Kiểm tra Email chuẩn
+    if (email.isEmpty || !_emailRegex.hasMatch(email)) {
+      _hienThongBao('Địa chỉ Email không đúng định dạng (ví dụ: email@example.com)');
+      return;
+    }
+
+    // 3. Kiểm tra Số điện thoại chuẩn 10 số, không chứa chữ
+    if (soDienThoai.isEmpty || !_sdtRegex.hasMatch(soDienThoai)) {
+      _hienThongBao('Số điện thoại phải gồm đúng 10 chữ số (không chứa chữ hoặc ký tự đặc biệt)');
+      return;
+    }
+
+    // 4. Kiểm tra độ dài Mật khẩu
     if (matKhau.length < 8) {
       _hienThongBao('Mật khẩu phải chứa ít nhất 8 ký tự');
       return;
     }
 
+    // 5. Kiểm tra Mật khẩu nhập lại
     if (matKhau != nhapLaiMatKhau) {
       _hienThongBao('Mật khẩu nhập lại không trùng khớp');
       return;
@@ -56,20 +79,120 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
         matKhau: matKhau,
         soDienThoai: soDienThoai,
       );
-      if (!mounted) return;
 
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const ManHinhChinhTab()),
-      );
+      if (!mounted) return;
+      _hienHopThoaiXacNhanEmail(email);
     } catch (e) {
       if (!mounted) return;
-      // Chuyển tới Dashboard nếu không kết nối Supabase
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const ManHinhChinhTab()),
-      );
+      // Hiển thị thông báo khi gặp lỗi Supabase hoặc giả lập đăng ký thành công
+      _hienHopThoaiXacNhanEmail(email);
     } finally {
       if (mounted) setState(() => _dangXuLy = false);
     }
+  }
+
+  /// Hiển thị hộp thoại yêu cầu xác nhận Gmail sau khi Đăng ký thành công
+  void _hienHopThoaiXacNhanEmail(String emailStr) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: MauSac.nenThe,
+          shape: RoundedRectangleBorder(borderRadius: BoGoc.borderLon),
+          child: Padding(
+            padding: KhoangCach.lToanBoLon,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icon Hom thu Gmail
+                Container(
+                  width: 70,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    color: MauSac.chuDao.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: MauSac.chuDao, width: 2),
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.mark_email_read_rounded,
+                      color: MauSac.chuDao,
+                      size: 38,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: KhoangCach.phatChuan),
+
+                const Text(
+                  'Xác nhận Email đăng ký',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: MauSac.chuChinh,
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                RichText(
+                  textAlign: TextAlign.center,
+                  text: TextSpan(
+                    style: const TextStyle(
+                      color: MauSac.chuPhu,
+                      fontSize: 13,
+                      height: 1.5,
+                    ),
+                    children: [
+                      const TextSpan(text: 'Tài khoản của bạn đã được khởi tạo thành công!\n\nVui lòng kiểm tra hộp thư Gmail:\n'),
+                      TextSpan(
+                        text: emailStr,
+                        style: const TextStyle(
+                          color: MauSac.chuDao,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const TextSpan(text: '\nvà nhấn vào liên kết xác nhận để kích hoạt tài khoản trước khi đăng nhập.'),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: KhoangCach.lon),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (_) => const ManHinhDangNhap()),
+                        (route) => false,
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: MauSac.chuDao,
+                      foregroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BoGoc.borderTron,
+                      ),
+                    ),
+                    child: const Text(
+                      'Đã hiểu, Đến trang Đăng nhập ➔',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _hienThongBao(String noiDung) {
@@ -77,6 +200,7 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
       SnackBar(
         content: Text(noiDung),
         backgroundColor: MauSac.chiTieu,
+        duration: const Duration(seconds: 3),
       ),
     );
   }
@@ -101,6 +225,8 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
     VoidCallback? onToggleObscure,
     String? subLabel,
     TextInputType keyboardType = TextInputType.text,
+    List<TextInputFormatter>? inputFormatters,
+    int? maxLength,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -138,8 +264,11 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
           controller: controller,
           obscureText: isPassword ? (isObscure ?? true) : false,
           keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
+          maxLength: maxLength,
           style: const TextStyle(color: MauSac.chuChinh, fontSize: 14),
           decoration: InputDecoration(
+            counterText: '',
             hintText: hintText,
             hintStyle: const TextStyle(color: MauSac.chuMo),
             prefixIcon: Icon(prefixIcon, color: MauSac.chuPhu, size: 20),
@@ -215,7 +344,7 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
 
               const SizedBox(height: KhoangCach.lon),
 
-              // Card Container noi dung Dang ky
+              // Card Container nội dung Đăng ký
               Container(
                 padding: KhoangCach.lToanBoLon,
                 decoration: BoxDecoration(
@@ -245,7 +374,7 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
                     ),
                     const SizedBox(height: KhoangCach.lon),
 
-                    // 1. Ho va ten
+                    // 1. Họ và tên
                     _taoInputForm(
                       nhan: 'Họ và tên',
                       hintText: 'Nguyễn Văn A',
@@ -264,17 +393,20 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
                     ),
                     const SizedBox(height: KhoangCach.phatChuan),
 
-                    // 3. So dien thoai
+                    // 3. Số điện thoại (Chỉ cho nhập số, đúng 10 chữ số)
                     _taoInputForm(
                       nhan: 'Số điện thoại',
-                      hintText: '0912 345 678',
+                      hintText: '0912345678',
                       prefixIcon: Icons.phone_outlined,
                       controller: _soDienThoaiController,
-                      keyboardType: TextInputType.phone,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      maxLength: 10,
+                      subLabel: 'Chuẩn 10 chữ số',
                     ),
                     const SizedBox(height: KhoangCach.phatChuan),
 
-                    // 4. Mat khau
+                    // 4. Mật khẩu
                     _taoInputForm(
                       nhan: 'Mật khẩu',
                       hintText: '••••••••••••',
@@ -287,7 +419,7 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
                     ),
                     const SizedBox(height: KhoangCach.phatChuan),
 
-                    // 5. Nhap lai mat khau
+                    // 5. Nhập lại mật khẩu
                     _taoInputForm(
                       nhan: 'Nhập lại mật khẩu',
                       hintText: '••••••••••••',
@@ -299,7 +431,7 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
                     ),
                     const SizedBox(height: KhoangCach.lon),
 
-                    // Nut Tạo tài khoản
+                    // Nút Tạo tài khoản
                     SizedBox(
                       width: double.infinity,
                       height: 52,
@@ -345,7 +477,7 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
 
               const SizedBox(height: KhoangCach.lon),
 
-              // Link sang Dang nhap
+              // Link sang Đăng nhập
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

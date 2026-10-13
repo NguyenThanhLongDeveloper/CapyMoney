@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../giao_dien/chuan_thiet_ke/mau_sac.dart';
 import '../../giao_dien/chuan_thiet_ke/bo_goc.dart';
 import '../../giao_dien/chuan_thiet_ke/khoang_cach.dart';
-import '../../giao_dien/chuan_thiet_ke/kieu_chu.dart';
 import '../../giao_dien/chuan_thiet_ke/bieu_tuong.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
 import 'man_hinh_dang_ky.dart';
