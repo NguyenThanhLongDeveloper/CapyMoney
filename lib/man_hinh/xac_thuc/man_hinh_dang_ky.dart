@@ -32,13 +32,25 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
   /// Regex kiểm tra Số điện thoại đúng 10 chữ số
   static final RegExp _sdtRegex = RegExp(r'^[0-9]{10}$');
 
+  // Trạng thái kiểm tra trực tiếp (Realtime validation status)
+  bool get _emailHopLe =>
+      _emailController.text.isNotEmpty && _emailRegex.hasMatch(_emailController.text.trim());
+
+  bool get _sdtHopLe =>
+      _soDienThoaiController.text.isNotEmpty && _sdtRegex.hasMatch(_soDienThoaiController.text.trim());
+
+  bool get _du8KyTu => _matKhauController.text.length >= 8;
+
+  bool get _trungKhop =>
+      _matKhauController.text.isNotEmpty &&
+      _matKhauController.text == _nhapLaiMatKhauController.text;
+
   /// Thao tác kiểm tra dữ liệu và Đăng ký tài khoản
   Future<void> _xuLyDangKy() async {
     final hoTen = _hoTenController.text.trim();
     final email = _emailController.text.trim();
     final soDienThoai = _soDienThoaiController.text.trim();
     final matKhau = _matKhauController.text.trim();
-    final nhapLaiMatKhau = _nhapLaiMatKhauController.text.trim();
 
     // 1. Kiểm tra Họ tên
     if (hoTen.isEmpty) {
@@ -47,25 +59,25 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
     }
 
     // 2. Kiểm tra Email chuẩn
-    if (email.isEmpty || !_emailRegex.hasMatch(email)) {
+    if (!_emailHopLe) {
       _hienThongBao('Địa chỉ Email không đúng định dạng (ví dụ: email@example.com)');
       return;
     }
 
-    // 3. Kiểm tra Số điện thoại chuẩn 10 số, không chứa chữ
-    if (soDienThoai.isEmpty || !_sdtRegex.hasMatch(soDienThoai)) {
+    // 3. Kiểm tra Số điện thoại chuẩn 10 số
+    if (!_sdtHopLe) {
       _hienThongBao('Số điện thoại phải gồm đúng 10 chữ số (không chứa chữ hoặc ký tự đặc biệt)');
       return;
     }
 
     // 4. Kiểm tra độ dài Mật khẩu
-    if (matKhau.length < 8) {
+    if (!_du8KyTu) {
       _hienThongBao('Mật khẩu phải chứa ít nhất 8 ký tự');
       return;
     }
 
     // 5. Kiểm tra Mật khẩu nhập lại
-    if (matKhau != nhapLaiMatKhau) {
+    if (!_trungKhop) {
       _hienThongBao('Mật khẩu nhập lại không trùng khớp');
       return;
     }
@@ -84,7 +96,6 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
       _hienHopThoaiXacNhanEmail(email);
     } catch (e) {
       if (!mounted) return;
-      // Hiển thị thông báo khi gặp lỗi Supabase hoặc giả lập đăng ký thành công
       _hienHopThoaiXacNhanEmail(email);
     } finally {
       if (mounted) setState(() => _dangXuLy = false);
@@ -105,7 +116,7 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Icon Hom thu Gmail
+                // Icon Hòm thư Gmail
                 Container(
                   width: 70,
                   height: 70,
@@ -266,6 +277,7 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,
           maxLength: maxLength,
+          onChanged: (_) => setState(() {}),
           style: const TextStyle(color: MauSac.chuChinh, fontSize: 14),
           decoration: InputDecoration(
             counterText: '',
@@ -429,6 +441,104 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
                       isObscure: _anNhapLaiMatKhau,
                       onToggleObscure: () => setState(() => _anNhapLaiMatKhau = !_anNhapLaiMatKhau),
                     ),
+                    const SizedBox(height: KhoangCach.vua),
+
+                    // Khung kiểm tra điều kiện thời gian thực (Realtime Validation Container)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: MauSac.nenNoi,
+                        borderRadius: BoGoc.borderVua,
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                _emailHopLe ? Icons.check_circle_rounded : Icons.circle_outlined,
+                                color: _emailHopLe ? MauSac.chuDao : MauSac.chuMo,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Email đúng định dạng (vd: name@gmail.com)',
+                                  style: TextStyle(
+                                    color: _emailHopLe ? MauSac.chuChinh : MauSac.chuMo,
+                                    fontSize: 12,
+                                    fontWeight: _emailHopLe ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Icon(
+                                _sdtHopLe ? Icons.check_circle_rounded : Icons.circle_outlined,
+                                color: _sdtHopLe ? MauSac.chuDao : MauSac.chuMo,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Số điện thoại chuẩn 10 chữ số',
+                                  style: TextStyle(
+                                    color: _sdtHopLe ? MauSac.chuChinh : MauSac.chuMo,
+                                    fontSize: 12,
+                                    fontWeight: _sdtHopLe ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Icon(
+                                _du8KyTu ? Icons.check_circle_rounded : Icons.circle_outlined,
+                                color: _du8KyTu ? MauSac.chuDao : MauSac.chuMo,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Tối thiểu 8 ký tự an toàn',
+                                  style: TextStyle(
+                                    color: _du8KyTu ? MauSac.chuChinh : MauSac.chuMo,
+                                    fontSize: 12,
+                                    fontWeight: _du8KyTu ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Icon(
+                                _trungKhop ? Icons.check_circle_rounded : Icons.circle_outlined,
+                                color: _trungKhop ? MauSac.chuDao : MauSac.chuMo,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Hai mật khẩu đã trùng khớp hoàn toàn',
+                                  style: TextStyle(
+                                    color: _trungKhop ? MauSac.chuChinh : MauSac.chuMo,
+                                    fontSize: 12,
+                                    fontWeight: _trungKhop ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
                     const SizedBox(height: KhoangCach.lon),
 
                     // Nút Tạo tài khoản
