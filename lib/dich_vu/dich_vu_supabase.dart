@@ -24,6 +24,20 @@ class DichVuSupabase {
     );
   }
 
+  /// Kiểm tra địa chỉ Email đã tồn tại trong CSDL chưa
+  static Future<bool> kiemTraEmailDaTonTai(String email) async {
+    try {
+      final response = await client
+          .from('nguoi_dung')
+          .select('id')
+          .eq('email', email.trim())
+          .maybeSingle();
+      return response != null;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Đăng ký tài khoản mới
   static Future<AuthResponse> dangKy({
     required String hoTen,

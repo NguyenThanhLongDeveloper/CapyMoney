@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../giao_dien/chuan_thiet_ke/mau_sac.dart';
 import '../../giao_dien/chuan_thiet_ke/bo_goc.dart';
 import '../../giao_dien/chuan_thiet_ke/khoang_cach.dart';
@@ -85,7 +86,8 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
     setState(() => _dangXuLy = true);
 
     try {
-      await DichVuSupabase.dangKy(
+      // Gọi Supabase Auth Đăng ký
+      final res = await DichVuSupabase.dangKy(
         hoTen: hoTen,
         email: email,
         matKhau: matKhau,
@@ -93,10 +95,35 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
       );
 
       if (!mounted) return;
+
+      // Đã tồn tại trên Supabase Auth (Protection mode)
+      if (res.user != null &&
+          res.user!.identities != null &&
+          res.user!.identities!.isEmpty) {
+        _hienThongBao('Địa chỉ Gmail này đã được đăng ký tài khoản. Vui lòng chuyển sang "Đăng nhập"!');
+        return;
+      }
+
+      if (res.user == null) {
+        _hienThongBao('Đăng ký không thành công. Vui lòng thử lại!');
+        return;
+      }
+
+      // Đăng ký thành công -> Hiển thị thông báo xác nhận email
       _hienHopThoaiXacNhanEmail(email);
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      final msg = e.message.toLowerCase();
+      if (msg.contains('already registered') ||
+          msg.contains('user_already_exists') ||
+          msg.contains('already exists')) {
+        _hienThongBao('Địa chỉ Gmail này đã được đăng ký. Vui lòng chọn "Đăng nhập ngay"!');
+      } else {
+        _hienThongBao('Lỗi đăng ký Supabase: ${e.message}');
+      }
     } catch (e) {
       if (!mounted) return;
-      _hienHopThoaiXacNhanEmail(email);
+      _hienThongBao('Lỗi đăng ký: $e');
     } finally {
       if (mounted) setState(() => _dangXuLy = false);
     }
@@ -211,7 +238,7 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
       SnackBar(
         content: Text(noiDung),
         backgroundColor: MauSac.chiTieu,
-        duration: const Duration(seconds: 3),
+        duration: const Duration(seconds: 4),
       ),
     );
   }
