@@ -5,6 +5,7 @@ import '../../giao_dien/chuan_thiet_ke/bo_goc.dart';
 import '../../giao_dien/chuan_thiet_ke/khoang_cach.dart';
 import '../../giao_dien/chuan_thiet_ke/kieu_chu.dart';
 import '../../giao_dien/chuan_thiet_ke/bieu_tuong.dart';
+import '../../giao_dien/chuan_thiet_ke/hinh_anh.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
 import '../xac_thuc/man_hinh_dang_nhap.dart';
 import '../dieu_huong/man_hinh_chinh_tab.dart';
@@ -161,36 +162,44 @@ class _ManHinhChoState extends State<ManHinhCho> with SingleTickerProviderStateM
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(26),
-                    child: Container(
-                      color: const Color(0xFFFFF4D8), // Nen vang nhat capy
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Icon(
-                            BieuTuong.capybaraThantai,
-                            size: 80,
-                            color: const Color(0xFF8D4B00),
-                          ),
-                          Positioned(
-                            bottom: 12,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: MauSac.canhBao,
-                                borderRadius: BorderRadius.circular(10),
+                    child: Image.asset(
+                      HinhAnh.logoCapy,
+                      width: 132,
+                      height: 132,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: const Color(0xFFFFF4D8),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Icon(
+                                BieuTuong.capybaraThantai,
+                                size: 80,
+                                color: const Color(0xFF8D4B00),
                               ),
-                              child: const Text(
-                                '💰 CAPY',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black,
+                              Positioned(
+                                bottom: 12,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: MauSac.canhBao,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Text(
+                                    '💰 CAPY',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
+                            ],
                           ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
                   ),
                 ),

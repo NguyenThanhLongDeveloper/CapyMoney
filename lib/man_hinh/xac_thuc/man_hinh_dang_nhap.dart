@@ -3,6 +3,7 @@ import '../../giao_dien/chuan_thiet_ke/mau_sac.dart';
 import '../../giao_dien/chuan_thiet_ke/bo_goc.dart';
 import '../../giao_dien/chuan_thiet_ke/khoang_cach.dart';
 import '../../giao_dien/chuan_thiet_ke/bieu_tuong.dart';
+import '../../giao_dien/chuan_thiet_ke/hinh_anh.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
 import 'man_hinh_dang_ky.dart';
 import 'man_hinh_quen_mat_khau.dart';
@@ -131,11 +132,22 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
                         ),
                       ],
                     ),
-                    child: const Center(
-                      child: Icon(
-                        BieuTuong.capybaraThantai,
-                        size: 54,
-                        color: Color(0xFF8D4B00),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(22),
+                      child: Image.asset(
+                        HinhAnh.logoCapy,
+                        width: 86,
+                        height: 86,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Center(
+                            child: Icon(
+                              BieuTuong.capybaraThantai,
+                              size: 54,
+                              color: Color(0xFF8D4B00),
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ),
