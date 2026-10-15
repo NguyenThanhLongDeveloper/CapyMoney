@@ -34,6 +34,12 @@ dependencies:
   # Supabase client cho Flutter
   supabase_flutter: ^2.8.0
 
+  # Lưu trữ bộ nhớ cục bộ (Ghi nhớ đăng nhập)
+  shared_preferences: ^2.5.0
+
+  # Đăng nhập bằng sinh trắc học (Vân tay / Khuôn mặt)
+  local_auth: ^2.3.0
+
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8

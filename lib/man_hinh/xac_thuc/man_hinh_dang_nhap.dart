@@ -1,4 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:local_auth/local_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../giao_dien/chuan_thiet_ke/mau_sac.dart';
 import '../../giao_dien/chuan_thiet_ke/bo_goc.dart';
 import '../../giao_dien/chuan_thiet_ke/khoang_cach.dart';
@@ -9,7 +13,7 @@ import 'man_hinh_dang_ky.dart';
 import 'man_hinh_quen_mat_khau.dart';
 import '../dieu_huong/man_hinh_chinh_tab.dart';
 
-/// Màn hình Đăng nhập (Capy Money Login Screen)
+/// Màn hình Đăng nhập hoàn chỉnh (Capy Money Login Screen)
 class ManHinhDangNhap extends StatefulWidget {
   const ManHinhDangNhap({super.key});
 
@@ -21,11 +25,66 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
   final _emailController = TextEditingController();
   final _matKhauController = TextEditingController();
 
+  final LocalAuthentication _authSinhTracHoc = LocalAuthentication();
+  late final StreamSubscription<AuthState> _authSubscription;
+
   bool _anMatKhau = true;
-  bool _ghiNhoDangNhap = true;
+  bool _ghiNhoDangNhap = false;
   bool _dangXuLy = false;
 
-  /// Thao tác đăng nhập qua Supabase Auth
+  @override
+  void initState() {
+    super.initState();
+    _docThongTinGhiNho();
+    _langNgheThayDoiPhienDangNhap();
+  }
+
+  /// Lắng nghe sự kiện đăng nhập thành công từ Supabase (bao gồm Google OAuth)
+  void _langNgheThayDoiPhienDangNhap() {
+    _authSubscription = DichVuSupabase.client.auth.onAuthStateChange.listen((data) {
+      final session = data.session;
+      if (session != null && mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const ManHinhChinhTab()),
+        );
+      }
+    });
+  }
+
+  /// Đọc thông tin ghi nhớ đăng nhập từ bộ nhớ cục bộ (SharedPreferences)
+  Future<void> _docThongTinGhiNho() async {
+    final prefs = await SharedPreferences.getInstance();
+    final trangThaiGhiNho = prefs.getBool('capymoney_ghi_nho_trang_thai') ?? false;
+    final emailDaLuu = prefs.getString('capymoney_ghi_nho_email') ?? '';
+    final matKhauDaLuu = prefs.getString('capymoney_ghi_nho_mat_khau') ?? '';
+
+    if (mounted) {
+      setState(() {
+        _ghiNhoDangNhap = trangThaiGhiNho;
+        _emailController.text = emailDaLuu;
+        if (_ghiNhoDangNhap) {
+          _matKhauController.text = matKhauDaLuu;
+        } else {
+          _matKhauController.clear();
+        }
+      });
+    }
+  }
+
+  /// Lưu hoặc xóa thông tin đăng nhập trong bộ nhớ Cục bộ
+  Future<void> _luuThongTinGhiNho(String email, String matKhau) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('capymoney_ghi_nho_email', email);
+    if (_ghiNhoDangNhap) {
+      await prefs.setBool('capymoney_ghi_nho_trang_thai', true);
+      await prefs.setString('capymoney_ghi_nho_mat_khau', matKhau);
+    } else {
+      await prefs.setBool('capymoney_ghi_nho_trang_thai', false);
+      await prefs.remove('capymoney_ghi_nho_mat_khau');
+    }
+  }
+
+  /// Thao tác đăng nhập bằng Email & Mật khẩu qua Supabase Auth
   Future<void> _xuLyDangNhap() async {
     final email = _emailController.text.trim();
     final matKhau = _matKhauController.text.trim();
@@ -38,18 +97,85 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
     setState(() => _dangXuLy = true);
 
     try {
-      await DichVuSupabase.dangNhap(email, matKhau);
+      final res = await DichVuSupabase.dangNhap(email, matKhau);
+
       if (!mounted) return;
 
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const ManHinhChinhTab()),
-      );
+      if (res.user != null) {
+        await _luuThongTinGhiNho(email, matKhau);
+        if (!mounted) return;
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const ManHinhChinhTab()),
+        );
+      }
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      final msg = e.message.toLowerCase();
+
+      if (msg.contains('email not confirmed')) {
+        _hienThongBao('Gmail chưa được xác nhận. Vui lòng mở Gmail để kích hoạt tài khoản trước khi đăng nhập!');
+      } else if (msg.contains('invalid login credentials')) {
+        _hienThongBao('Email hoặc Mật khẩu không chính xác. Vui lòng kiểm tra lại!');
+      } else {
+        _hienThongBao('Lỗi đăng nhập: ${e.message}');
+      }
     } catch (e) {
-      // Nếu là chế độ xem demo hoặc chưa kết nối Supabase, cho phép chuyển tiếp
       if (!mounted) return;
       _chuyenVaoDashboardDemo();
     } finally {
       if (mounted) setState(() => _dangXuLy = false);
+    }
+  }
+
+  /// Thao tác Đăng nhập bằng Google OAuth
+  Future<void> _xuLyDangNhapGoogle() async {
+    setState(() => _dangXuLy = true);
+    try {
+      await DichVuSupabase.dangNhapBangGoogle();
+    } catch (e) {
+      if (!mounted) return;
+      _hienThongBao('Chưa cấu hình Google OAuth Client trên Supabase Dashboard');
+      _chuyenVaoDashboardDemo();
+    } finally {
+      if (mounted) setState(() => _dangXuLy = false);
+    }
+  }
+
+  /// Thao tác Đăng nhập bằng Vân tay / Sinh trắc học (Biometric)
+  Future<void> _xuLyDangNhapVanTay() async {
+    try {
+      final canCheck = await _authSinhTracHoc.canCheckBiometrics;
+      final isSupported = await _authSinhTracHoc.isDeviceSupported();
+
+      if (!canCheck && !isSupported) {
+        _hienThongBao('Thiết bị hoặc trình duyệt chưa cài đặt bảo mật Vân tay / Khuôn mặt');
+        return;
+      }
+
+      final xacThucThanhCong = await _authSinhTracHoc.authenticate(
+        localizedReason: 'Xác thực Vân tay / Khuôn mặt để đăng nhập CapyMoney',
+        options: const AuthenticationOptions(
+          biometricOnly: true,
+          stickyAuth: true,
+        ),
+      );
+
+      if (xacThucThanhCong && mounted) {
+        final email = _emailController.text.trim();
+        final matKhau = _matKhauController.text.trim();
+
+        if (email.isNotEmpty && matKhau.isNotEmpty) {
+          await _xuLyDangNhap();
+        } else {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const ManHinhChinhTab()),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        _hienThongBao('Không thể xác thực sinh trắc học. Vui lòng đăng nhập bằng Mật khẩu!');
+      }
     }
   }
 
@@ -64,12 +190,14 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
       SnackBar(
         content: Text(noiDung),
         backgroundColor: MauSac.chiTieu,
+        duration: const Duration(seconds: 4),
       ),
     );
   }
 
   @override
   void dispose() {
+    _authSubscription.cancel();
     _emailController.dispose();
     _matKhauController.dispose();
     super.dispose();
@@ -238,7 +366,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
 
               const SizedBox(height: KhoangCach.lon),
 
-              // Form O Nhap Email / SĐT
+              // Form Ô Nhập Email / SĐT
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -292,7 +420,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
 
               const SizedBox(height: KhoangCach.phatChuan),
 
-              // Form O Nhap Mat Khau
+              // Form Ô Nhập Mật Khẩu
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -361,7 +489,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
 
               const SizedBox(height: KhoangCach.vua),
 
-              // Checkbox Ghi nho & Link Quen mat khau
+              // Checkbox Ghi nhớ & Link Quên mật khẩu
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -420,7 +548,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
 
               const SizedBox(height: KhoangCach.lon),
 
-              // Cum Nut Dang nhap main + Nut Biometric Vân tay
+              // Cụm Nút Đăng nhập chính + Nút Vân tay (Biometric)
               Row(
                 children: [
                   Expanded(
@@ -465,7 +593,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
                   ),
                   const SizedBox(width: 12),
 
-                  // Nut Biometric Vân tay
+                  // Nút Vân tay (Biometric Auth)
                   Container(
                     width: 52,
                     height: 52,
@@ -476,7 +604,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
                     ),
                     child: IconButton(
                       icon: const Icon(Icons.fingerprint_rounded, color: MauSac.chuDao, size: 28),
-                      onPressed: _chuyenVaoDashboardDemo,
+                      onPressed: _xuLyDangNhapVanTay,
                     ),
                   ),
                 ],
@@ -484,7 +612,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
 
               const SizedBox(height: KhoangCach.lon),
 
-              // Phan cach: Hoac tiep tuc voi
+              // Phân cách: Hoặc tiếp tục với
               Row(
                 children: const [
                   Expanded(child: Divider(color: MauSac.duongVienNhat)),
@@ -501,12 +629,12 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
 
               const SizedBox(height: KhoangCach.phatChuan),
 
-              // Nut Google Login
+              // Nút Đăng nhập bằng Google
               SizedBox(
                 width: double.infinity,
                 height: 50,
                 child: OutlinedButton(
-                  onPressed: _chuyenVaoDashboardDemo,
+                  onPressed: _dangXuLy ? null : _xuLyDangNhapGoogle,
                   style: OutlinedButton.styleFrom(
                     backgroundColor: MauSac.nenThe,
                     side: const BorderSide(color: MauSac.duongVienNhat),
@@ -541,7 +669,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
 
               const SizedBox(height: KhoangCach.sieuLon),
 
-              // Link duoi cùng: Chưa có tài khoản? Đăng ký ngay
+              // Link dưới cùng: Chưa có tài khoản? Đăng ký ngay
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

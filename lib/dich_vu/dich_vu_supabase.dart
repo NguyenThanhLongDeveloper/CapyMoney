@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../cau_hinh/cau_hinh_supabase.dart';
 import '../mo_hinh/tai_khoan_ngan_hang_model.dart';
@@ -21,6 +22,14 @@ class DichVuSupabase {
     return await client.auth.signInWithPassword(
       email: email,
       password: matKhau,
+    );
+  }
+
+  /// Đăng nhập bằng Google OAuth
+  static Future<bool> dangNhapBangGoogle() async {
+    return await client.auth.signInWithOAuth(
+      OAuthProvider.google,
+      redirectTo: kIsWeb ? Uri.base.origin : 'capymoney://login-callback',
     );
   }
 

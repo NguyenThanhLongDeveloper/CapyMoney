@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../giao_dien/chuan_thiet_ke/mau_sac.dart';
 import '../../giao_dien/chuan_thiet_ke/bo_goc.dart';
 import '../../giao_dien/chuan_thiet_ke/khoang_cach.dart';
@@ -44,12 +45,18 @@ class _ManHinhChoState extends State<ManHinhCho> with SingleTickerProviderStateM
     });
   }
 
-  /// Chuyển màn hình sau khi tải xong dựa trên trạng thái Supabase Auth
-  void _chuyenManHinh() {
+  /// Chuyển màn hình dựa trên trạng thái Checkbox "Ghi nhớ đăng nhập"
+  Future<void> _chuyenManHinh() async {
+    final prefs = await SharedPreferences.getInstance();
+    final bool trangThaiGhiNho = prefs.getBool('capymoney_ghi_nho_trang_thai') ?? false;
     final nguoiDungHienTai = DichVuSupabase.client.auth.currentUser;
-    final Widget manHinhTiepTheo = nguoiDungHienTai != null
+
+    // Chỉ vào thẳng Màn hình chính nếu người dùng CÓ TICK "Ghi nhớ đăng nhập"
+    final Widget manHinhTiepTheo = (trangThaiGhiNho && nguoiDungHienTai != null)
         ? const ManHinhChinhTab()
         : const ManHinhDangNhap();
+
+    if (!mounted) return;
 
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
