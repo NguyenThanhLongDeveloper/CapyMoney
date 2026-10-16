@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../giao_dien/chuan_thiet_ke/mau_sac.dart';
 import '../../giao_dien/chuan_thiet_ke/bo_goc.dart';
 import '../../giao_dien/chuan_thiet_ke/khoang_cach.dart';
@@ -19,7 +20,7 @@ class TabTaiKhoan extends StatefulWidget {
 class _TabTaiKhoanState extends State<TabTaiKhoan> {
   bool _baoCaoGmail = true;
   bool _nhacNhoGhiChep = true;
-  bool _dangNhapVanTay = true;
+  bool _dangNhapVanTay = false;
 
   String _hoTen = 'Nguyễn Hải Đăng';
   String _email = 'haidang.finance@gmail.com';
@@ -30,15 +31,70 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
     _loadThongTinNguoiDung();
   }
 
-  /// Nạp thông tin người dùng từ Supabase Auth
-  void _loadThongTinNguoiDung() {
+  /// Nạp thông tin người dùng từ Supabase Auth & SharedPreferences
+  Future<void> _loadThongTinNguoiDung() async {
     final user = DichVuSupabase.client.auth.currentUser;
-    if (user != null) {
+    final prefs = await SharedPreferences.getInstance();
+
+    final String emailCurrent = (user?.email ??
+            prefs.getString('capymoney_da_dang_nhap_lan_cuoi_email') ??
+            'haidang.finance@gmail.com')
+        .toLowerCase()
+        .trim();
+
+    final String hoTenCurrent = (user?.userMetadata?['ho_ten'] as String?) ??
+        prefs.getString('capymoney_da_dang_nhap_lan_cuoi_ten') ??
+        'Nguyễn Hải Đăng';
+
+    // Đọc chính xác trạng thái bật/tắt vân tay
+    bool trangThaiVanTay = false;
+    if (emailCurrent.isNotEmpty && prefs.containsKey('capymoney_van_tay_bat_$emailCurrent')) {
+      trangThaiVanTay = prefs.getBool('capymoney_van_tay_bat_$emailCurrent')!;
+    } else if (prefs.containsKey('capymoney_van_tay_bat')) {
+      trangThaiVanTay = prefs.getBool('capymoney_van_tay_bat')!;
+    }
+
+    if (emailCurrent.isNotEmpty) {
+      await prefs.setString('capymoney_da_dang_nhap_lan_cuoi_email', emailCurrent);
+    }
+    await prefs.setString('capymoney_da_dang_nhap_lan_cuoi_ten', hoTenCurrent);
+
+    if (mounted) {
       setState(() {
-        _email = user.email ?? 'haidang.finance@gmail.com';
-        _hoTen = user.userMetadata?['ho_ten'] as String? ?? 'Nguyễn Hải Đăng';
+        _email = emailCurrent.isNotEmpty ? emailCurrent : _email;
+        _hoTen = hoTenCurrent;
+        _dangNhapVanTay = trangThaiVanTay;
       });
     }
+  }
+
+  /// Cập nhật bật/tắt đăng nhập bằng vân tay cho tài khoản hiện tại
+  Future<void> _thayDoiTrangThaiVanTay(bool val) async {
+    final prefs = await SharedPreferences.getInstance();
+    final emailKey = _email.toLowerCase().trim();
+
+    setState(() => _dangNhapVanTay = val);
+
+    // Lưu đồng bộ cả khóa theo email lẫn khóa toàn cục
+    if (emailKey.isNotEmpty) {
+      await prefs.setBool('capymoney_van_tay_bat_$emailKey', val);
+    }
+    await prefs.setBool('capymoney_van_tay_bat', val);
+    await prefs.setString('capymoney_van_tay_email', emailKey);
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          val
+              ? 'Đã bật đăng nhập bằng vân tay cho tài khoản $_email'
+              : 'Đã tắt đăng nhập bằng vân tay cho tài khoản $_email',
+        ),
+        backgroundColor: val ? MauSac.chuDao : MauSac.nenNoi,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   /// Thao tác đăng xuất tài khoản
@@ -80,7 +136,7 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
                           width: 36,
                           height: 36,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
+                          errorBuilder: (context, error, stackTrace) => Container(
                             width: 36,
                             height: 36,
                             color: MauSac.nenNoi,
@@ -477,7 +533,7 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
                       ),
                       trailing: Switch(
                         value: _baoCaoGmail,
-                        activeColor: MauSac.chuDao,
+                        activeTrackColor: MauSac.chuDao,
                         onChanged: (val) => setState(() => _baoCaoGmail = val),
                       ),
                     ),
@@ -531,20 +587,10 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
                         'Thông báo mỗi 21:30 hàng ngày',
                         style: TextStyle(color: MauSac.chuPhu, fontSize: 11),
                       ),
-                      trailing: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: MauSac.nenNoi,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text(
-                          '21:30',
-                          style: TextStyle(
-                            color: MauSac.chuDao,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                      trailing: Switch(
+                        value: _nhacNhoGhiChep,
+                        activeTrackColor: MauSac.chuDao,
+                        onChanged: (val) => setState(() => _nhacNhoGhiChep = val),
                       ),
                     ),
 
@@ -575,8 +621,8 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
                       ),
                       trailing: Switch(
                         value: _dangNhapVanTay,
-                        activeColor: MauSac.chuDao,
-                        onChanged: (val) => setState(() => _dangNhapVanTay = val),
+                        activeTrackColor: MauSac.chuDao,
+                        onChanged: (val) => _thayDoiTrangThaiVanTay(val),
                       ),
                     ),
                   ],

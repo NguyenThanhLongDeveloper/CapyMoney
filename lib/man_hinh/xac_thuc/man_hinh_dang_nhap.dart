@@ -32,6 +32,10 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
   bool _ghiNhoDangNhap = false;
   bool _dangXuLy = false;
 
+  String _tenDaDangNhapLanCuoi = '';
+  String _emailDaDangNhapLanCuoi = '';
+  bool _hienFormNhapEmailKhac = false;
+
   @override
   void initState() {
     super.initState();
@@ -39,11 +43,13 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
     _langNgheThayDoiPhienDangNhap();
   }
 
-  /// Lắng nghe sự kiện đăng nhập thành công từ Supabase (bao gồm Google OAuth)
+  /// Lắng nghe sự kiện đăng nhập trực tiếp từ OAuth
   void _langNgheThayDoiPhienDangNhap() {
     _authSubscription = DichVuSupabase.client.auth.onAuthStateChange.listen((data) {
       final session = data.session;
-      if (session != null && mounted) {
+      final event = data.event;
+      // Chỉ chuyển trang nếu là sự kiện đăng nhập mới (OAuth), tránh tự nhảy trang khi restore session cũ
+      if (session != null && mounted && event == AuthChangeEvent.signedIn) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const ManHinhChinhTab()),
         );
@@ -51,17 +57,32 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
     });
   }
 
-  /// Đọc thông tin ghi nhớ đăng nhập từ bộ nhớ cục bộ (SharedPreferences)
+  /// Đọc thông tin ghi nhớ đăng nhập và tài khoản đã đăng nhập lần cuối
   Future<void> _docThongTinGhiNho() async {
     final prefs = await SharedPreferences.getInstance();
     final trangThaiGhiNho = prefs.getBool('capymoney_ghi_nho_trang_thai') ?? false;
     final emailDaLuu = prefs.getString('capymoney_ghi_nho_email') ?? '';
     final matKhauDaLuu = prefs.getString('capymoney_ghi_nho_mat_khau') ?? '';
+    final emailLanCuoi = prefs.getString('capymoney_da_dang_nhap_lan_cuoi_email') ?? emailDaLuu;
+    final tenLanCuoi = prefs.getString('capymoney_da_dang_nhap_lan_cuoi_ten') ?? 'Người dùng Capy';
+
+    // RÀNG BUỘC QUAN TRỌNG: Nếu KHÔNG TICK "Ghi nhớ đăng nhập", hủy session cũ để bắt buộc nhập Mật khẩu/Vân tay!
+    if (!trangThaiGhiNho && DichVuSupabase.client.auth.currentUser != null) {
+      try {
+        await DichVuSupabase.dangXuat();
+      } catch (_) {}
+    }
 
     if (mounted) {
       setState(() {
         _ghiNhoDangNhap = trangThaiGhiNho;
-        _emailController.text = emailDaLuu;
+        _emailDaDangNhapLanCuoi = emailLanCuoi;
+        _tenDaDangNhapLanCuoi = tenLanCuoi;
+
+        if (emailLanCuoi.isNotEmpty) {
+          _emailController.text = emailLanCuoi;
+        }
+
         if (_ghiNhoDangNhap) {
           _matKhauController.text = matKhauDaLuu;
         } else {
@@ -74,7 +95,9 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
   /// Lưu hoặc xóa thông tin đăng nhập trong bộ nhớ Cục bộ
   Future<void> _luuThongTinGhiNho(String email, String matKhau) async {
     final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('capymoney_da_dang_nhap_lan_cuoi_email', email);
     await prefs.setString('capymoney_ghi_nho_email', email);
+
     if (_ghiNhoDangNhap) {
       await prefs.setBool('capymoney_ghi_nho_trang_thai', true);
       await prefs.setString('capymoney_ghi_nho_mat_khau', matKhau);
@@ -86,11 +109,13 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
 
   /// Thao tác đăng nhập bằng Email & Mật khẩu qua Supabase Auth
   Future<void> _xuLyDangNhap() async {
-    final email = _emailController.text.trim();
+    final email = _emailController.text.trim().isNotEmpty
+        ? _emailController.text.trim()
+        : _emailDaDangNhapLanCuoi;
     final matKhau = _matKhauController.text.trim();
 
     if (email.isEmpty || matKhau.isEmpty) {
-      _hienThongBao('Vui lòng nhập đầy đủ Email và Mật khẩu');
+      _hienThongBao('Vui lòng nhập đầy đủ Mật khẩu bảo mật');
       return;
     }
 
@@ -143,6 +168,24 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
 
   /// Thao tác Đăng nhập bằng Vân tay / Sinh trắc học (Biometric)
   Future<void> _xuLyDangNhapVanTay() async {
+    final emailTarget = _emailController.text.trim().isNotEmpty
+        ? _emailController.text.trim()
+        : _emailDaDangNhapLanCuoi;
+
+    if (emailTarget.isEmpty) {
+      _hienThongBao('Vui lòng chọn hoặc nhập Email tài khoản trước khi đăng nhập vân tay!');
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final bool isVanTayEnabled = prefs.getBool('capymoney_van_tay_bat_$emailTarget') ?? false;
+
+    // RÀNG BUỘC 1: Nếu chưa kích hoạt vân tay trong màn hình "Tôi" -> THÔNG BÁO VÀ CHẶN
+    if (!isVanTayEnabled) {
+      _hienThongBao('Tài khoản "$emailTarget" chưa kích hoạt đăng nhập bằng vân tay. Vui lòng bật tính năng này trong màn hình "Tôi"!');
+      return;
+    }
+
     try {
       final canCheck = await _authSinhTracHoc.canCheckBiometrics;
       final isSupported = await _authSinhTracHoc.isDeviceSupported();
@@ -153,7 +196,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
       }
 
       final xacThucThanhCong = await _authSinhTracHoc.authenticate(
-        localizedReason: 'Xác thực Vân tay / Khuôn mặt để đăng nhập CapyMoney',
+        localizedReason: 'Xác thực Vân tay / Khuôn mặt cho tài khoản $emailTarget',
         options: const AuthenticationOptions(
           biometricOnly: true,
           stickyAuth: true,
@@ -161,12 +204,12 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
       );
 
       if (xacThucThanhCong && mounted) {
-        final email = _emailController.text.trim();
         final matKhau = _matKhauController.text.trim();
-
-        if (email.isNotEmpty && matKhau.isNotEmpty) {
+        if (matKhau.isNotEmpty) {
           await _xuLyDangNhap();
         } else {
+          await prefs.setString('capymoney_da_dang_nhap_lan_cuoi_email', emailTarget);
+          if (!mounted) return;
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (_) => const ManHinhChinhTab()),
           );
@@ -205,6 +248,11 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
 
   @override
   Widget build(BuildContext context) {
+    // Kiểm tra xem có hiển thị Thẻ Avatar định danh tài khoản đã dùng gần nhất hay không
+    final bool hienProfileBadge = !_ghiNhoDangNhap &&
+        !_hienFormNhapEmailKhac &&
+        _emailDaDangNhapLanCuoi.isNotEmpty;
+
     return Scaffold(
       backgroundColor: MauSac.nenChinh,
       body: SafeArea(
@@ -366,57 +414,125 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
 
               const SizedBox(height: KhoangCach.lon),
 
-              // Form Ô Nhập Email / SĐT
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
-                      Text(
-                        'Email hoặc Số điện thoại',
-                        style: TextStyle(
-                          color: MauSac.chuChinh,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+              // KIỂM TRA ĐIỀU KIỆN HIỂN THỊ: Form Ô Nhập Email hoặc Bảng Profile Badge
+              if (hienProfileBadge)
+                // 1. THỂ HIỆN BẢNG AVATAR VÀ TÊN CHỦ TÀI KHOẢN KHI KHÔNG TÍCH GHI NHỚ
+                Container(
+                  padding: KhoangCach.lToanBoChuan,
+                  decoration: BoxDecoration(
+                    color: MauSac.nenThe,
+                    borderRadius: BoGoc.borderVua,
+                    border: Border.all(color: MauSac.duongVienNhat),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: MauSac.nenNoi,
+                        child: const Icon(Icons.person_rounded, color: MauSac.chuDao, size: 24),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _tenDaDangNhapLanCuoi.isNotEmpty
+                                  ? _tenDaDangNhapLanCuoi
+                                  : 'Chủ tài khoản',
+                              style: const TextStyle(
+                                color: MauSac.chuChinh,
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              _emailDaDangNhapLanCuoi,
+                              style: const TextStyle(
+                                color: MauSac.chuPhu,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      Text(
-                        'Bắt buộc',
-                        style: TextStyle(
-                          color: MauSac.chuMo,
-                          fontSize: 12,
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _hienFormNhapEmailKhac = true;
+                            _emailController.clear();
+                          });
+                        },
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: const Text(
+                          'Đổi tài khoản',
+                          style: TextStyle(
+                            color: MauSac.chuDao,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _emailController,
-                    style: const TextStyle(color: MauSac.chuChinh, fontSize: 14),
-                    decoration: InputDecoration(
-                      hintText: 'email@example.com',
-                      hintStyle: const TextStyle(color: MauSac.chuMo),
-                      prefixIcon: const Icon(Icons.alternate_email_rounded, color: MauSac.chuPhu, size: 20),
-                      filled: true,
-                      fillColor: MauSac.nenThe,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                      border: OutlineInputBorder(
-                        borderRadius: BoGoc.borderVua,
-                        borderSide: const BorderSide(color: MauSac.duongVienNhat),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BoGoc.borderVua,
-                        borderSide: const BorderSide(color: MauSac.duongVienNhat),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BoGoc.borderVua,
-                        borderSide: const BorderSide(color: MauSac.chuDao),
+                )
+              else
+                // 2. FORM HIỂN THỊ Ô NHẬP EMAIL THÔNG THƯỜNG
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: const [
+                        Text(
+                          'Email hoặc Số điện thoại',
+                          style: TextStyle(
+                            color: MauSac.chuChinh,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          'Bắt buộc',
+                          style: TextStyle(
+                            color: MauSac.chuMo,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _emailController,
+                      style: const TextStyle(color: MauSac.chuChinh, fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: 'email@example.com',
+                        hintStyle: const TextStyle(color: MauSac.chuMo),
+                        prefixIcon: const Icon(Icons.alternate_email_rounded, color: MauSac.chuPhu, size: 20),
+                        filled: true,
+                        fillColor: MauSac.nenThe,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        border: OutlineInputBorder(
+                          borderRadius: BoGoc.borderVua,
+                          borderSide: const BorderSide(color: MauSac.duongVienNhat),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BoGoc.borderVua,
+                          borderSide: const BorderSide(color: MauSac.duongVienNhat),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BoGoc.borderVua,
+                          borderSide: const BorderSide(color: MauSac.chuDao),
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
 
               const SizedBox(height: KhoangCach.phatChuan),
 
