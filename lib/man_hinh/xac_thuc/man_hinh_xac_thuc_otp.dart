@@ -1,11 +1,14 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../giao_dien/chuan_thiet_ke/mau_sac.dart';
 import '../../giao_dien/chuan_thiet_ke/bo_goc.dart';
 import '../../giao_dien/chuan_thiet_ke/khoang_cach.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
 import 'man_hinh_dang_nhap.dart';
 
-/// Màn hình Xác thực OTP & Đổi mật khẩu mới
+/// Màn hình Xác thực OTP & Đổi mật khẩu mới (Capy Money Reset Password)
 class ManHinhXacThucOtp extends StatefulWidget {
   final String email;
   const ManHinhXacThucOtp({super.key, required this.email});
@@ -26,23 +29,60 @@ class _ManHinhXacThucOtpState extends State<ManHinhXacThucOtp> {
   bool _anXacNhanMatKhau = true;
   bool _dangXuLy = false;
 
+  int _demNguoc = 60;
+  Timer? _boDemTimer;
+
   @override
   void initState() {
     super.initState();
-    // Dien ma OTP mau giong anh (5, 8, 2, 9)
-    _otpControllers[0].text = '5';
-    _otpControllers[1].text = '8';
-    _otpControllers[2].text = '2';
-    _otpControllers[3].text = '9';
+    _batDauDemNguoc();
+  }
+
+  /// Bắt đầu đếm ngược 60 giây gửi lại mã OTP
+  void _batDauDemNguoc() {
+    setState(() => _demNguoc = 60);
+    _boDemTimer?.cancel();
+    _boDemTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+      if (_demNguoc > 0) {
+        setState(() => _demNguoc--);
+      } else {
+        _boDemTimer?.cancel();
+      }
+    });
+  }
+
+  /// Thao tác gửi lại mã OTP về Gmail
+  Future<void> _guiLaiMaOtp() async {
+    if (_demNguoc > 0) return;
+
+    try {
+      await DichVuSupabase.guiMaKhoiPhuc(widget.email);
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Đã gửi lại mã OTP mới về Gmail ${widget.email}'),
+          backgroundColor: MauSac.chuDao,
+        ),
+      );
+      _batDauDemNguoc();
+    } catch (e) {
+      if (mounted) {
+        _hienThongBao('Không thể gửi lại mã OTP: $e');
+      }
+    }
   }
 
   bool get _du8KyTu => _matKhauMoiController.text.length >= 8;
+
   bool get _trungKhop =>
       _matKhauMoiController.text.isNotEmpty &&
       _matKhauMoiController.text == _xacNhanMatKhauController.text;
 
+  /// Thao tác xác thực OTP và đổi mật khẩu mới
   Future<void> _xuLyDoiMatKhau() async {
-    final maOtp = _otpControllers.map((c) => c.text).join();
+    final maOtp = _otpControllers.map((c) => c.text.trim()).join();
     final matKhauMoi = _matKhauMoiController.text.trim();
 
     if (maOtp.length < 6) {
@@ -50,8 +90,13 @@ class _ManHinhXacThucOtpState extends State<ManHinhXacThucOtp> {
       return;
     }
 
-    if (!_du8KyTu || !_trungKhop) {
-      _hienThongBao('Mật khẩu mới không hợp lệ hoặc không trùng khớp');
+    if (!_du8KyTu) {
+      _hienThongBao('Mật khẩu mới phải chứa ít nhất 8 ký tự');
+      return;
+    }
+
+    if (!_trungKhop) {
+      _hienThongBao('Mật khẩu xác nhận không trùng khớp');
       return;
     }
 
@@ -63,22 +108,34 @@ class _ManHinhXacThucOtpState extends State<ManHinhXacThucOtp> {
         maOtp: maOtp,
         matKhauMoi: matKhauMoi,
       );
+
+      // Xóa mật khẩu cũ trong SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('capymoney_ghi_nho_mat_khau');
+      await prefs.setBool('capymoney_ghi_nho_trang_thai', false);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đổi mật khẩu thành công! Vui lòng đăng nhập bằng mật khẩu mới.'),
+          backgroundColor: MauSac.chuDao,
+          duration: Duration(seconds: 4),
+        ),
+      );
+
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const ManHinhDangNhap()),
+        (route) => false,
+      );
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      _hienThongBao('Mã OTP không chính xác hoặc đã hết hạn (${e.message})');
     } catch (e) {
-      // Tiep tuc gia lap thanh cong
+      if (!mounted) return;
+      _hienThongBao('Lỗi đổi mật khẩu: $e');
     } finally {
-      if (mounted) {
-        setState(() => _dangXuLy = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Đổi mật khẩu thành công! Vui lòng đăng nhập.'),
-            backgroundColor: MauSac.chuDao,
-          ),
-        );
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const ManHinhDangNhap()),
-          (route) => false,
-        );
-      }
+      if (mounted) setState(() => _dangXuLy = false);
     }
   }
 
@@ -87,12 +144,14 @@ class _ManHinhXacThucOtpState extends State<ManHinhXacThucOtp> {
       SnackBar(
         content: Text(noiDung),
         backgroundColor: MauSac.chiTieu,
+        duration: const Duration(seconds: 4),
       ),
     );
   }
 
   @override
   void dispose() {
+    _boDemTimer?.cancel();
     for (var c in _otpControllers) {
       c.dispose();
     }
@@ -133,7 +192,7 @@ class _ManHinhXacThucOtpState extends State<ManHinhXacThucOtp> {
             children: [
               const SizedBox(height: KhoangCach.vua),
 
-              // Icon khien bao mat phat sang
+              // Icon khiên bảo mật phát sáng
               Container(
                 width: 80,
                 height: 80,
@@ -192,7 +251,7 @@ class _ManHinhXacThucOtpState extends State<ManHinhXacThucOtp> {
 
               const SizedBox(height: KhoangCach.lon),
 
-              // Card Nhap OTP & Password
+              // Card Nhập OTP & Password
               Container(
                 padding: KhoangCach.lToanBoLon,
                 decoration: BoxDecoration(
@@ -228,7 +287,7 @@ class _ManHinhXacThucOtpState extends State<ManHinhXacThucOtp> {
 
                     const SizedBox(height: 12),
 
-                    // 6 O Nhap OTP
+                    // 6 Ô Nhập OTP với tự động chuyển focus
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: List.generate(6, (index) {
@@ -278,20 +337,24 @@ class _ManHinhXacThucOtpState extends State<ManHinhXacThucOtp> {
 
                     const SizedBox(height: 12),
 
-                    // Time dem nguoc & Gui lai ma OTP
+                    // Time đếm ngược & Gửi lại mã OTP
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
+                      children: [
                         Text(
-                          '⏰ Gửi lại mã sau 0s',
-                          style: TextStyle(color: MauSac.chuMo, fontSize: 12),
+                          '⏰ Gửi lại mã sau ${_demNguoc}s',
+                          style: const TextStyle(color: MauSac.chuMo, fontSize: 12),
                         ),
-                        Text(
-                          'Gửi lại mã OTP',
-                          style: TextStyle(
-                            color: MauSac.chuDao,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                        GestureDetector(
+                          onTap: _demNguoc == 0 ? _guiLaiMaOtp : null,
+                          child: Text(
+                            'Gửi lại mã OTP',
+                            style: TextStyle(
+                              color: _demNguoc == 0 ? MauSac.chuDao : MauSac.chuMo,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              decoration: _demNguoc == 0 ? TextDecoration.underline : TextDecoration.none,
+                            ),
                           ),
                         ),
                       ],
@@ -315,7 +378,7 @@ class _ManHinhXacThucOtpState extends State<ManHinhXacThucOtp> {
 
                     const SizedBox(height: KhoangCach.vua),
 
-                    // Mat khau moi
+                    // Mật khẩu mới
                     const Text(
                       'Mật khẩu mới',
                       style: TextStyle(color: MauSac.chuChinh, fontSize: 13, fontWeight: FontWeight.w600),
@@ -358,7 +421,7 @@ class _ManHinhXacThucOtpState extends State<ManHinhXacThucOtp> {
 
                     const SizedBox(height: KhoangCach.phatChuan),
 
-                    // Xac nhan mat khau
+                    // Xác nhận mật khẩu
                     const Text(
                       'Xác nhận mật khẩu',
                       style: TextStyle(color: MauSac.chuChinh, fontSize: 13, fontWeight: FontWeight.w600),
@@ -401,7 +464,7 @@ class _ManHinhXacThucOtpState extends State<ManHinhXacThucOtp> {
 
                     const SizedBox(height: KhoangCach.vua),
 
-                    // 2 Dong kiem tra
+                    // 2 Dòng kiểm tra điều kiện thời gian thực
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -453,7 +516,7 @@ class _ManHinhXacThucOtpState extends State<ManHinhXacThucOtp> {
 
                     const SizedBox(height: KhoangCach.lon),
 
-                    // Nut CTA Xac nhan & Doi mat khau
+                    // Nút CTA Xác nhận & Đổi mật khẩu
                     SizedBox(
                       width: double.infinity,
                       height: 52,
@@ -499,7 +562,7 @@ class _ManHinhXacThucOtpState extends State<ManHinhXacThucOtp> {
 
               const SizedBox(height: KhoangCach.lon),
 
-              // Quay ve dang nhap
+              // Quay về Đăng nhập
               GestureDetector(
                 onTap: () {
                   Navigator.of(context).pushAndRemoveUntil(

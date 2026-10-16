@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../giao_dien/chuan_thiet_ke/mau_sac.dart';
 import '../../giao_dien/chuan_thiet_ke/bo_goc.dart';
 import '../../giao_dien/chuan_thiet_ke/khoang_cach.dart';
@@ -14,38 +15,80 @@ class ManHinhQuenMatKhau extends StatefulWidget {
 }
 
 class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
-  final _emailController = TextEditingController(text: 'vidu@gmail.com');
+  final _emailController = TextEditingController();
   bool _dangXuLy = false;
+
+  /// Regex kiểm tra Email chuẩn
+  static final RegExp _emailRegex =
+      RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
 
   Future<void> _guiMaOtp() async {
     final email = _emailController.text.trim();
+
+    // 1. Kiểm tra không để trống
     if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Vui lòng nhập địa chỉ Gmail'),
-          backgroundColor: MauSac.chiTieu,
-        ),
-      );
+      _hienThongBao('Vui lòng nhập địa chỉ Gmail khôi phục');
+      return;
+    }
+
+    // 2. Kiểm tra định dạng Email
+    if (!_emailRegex.hasMatch(email)) {
+      _hienThongBao('Địa chỉ Gmail không đúng định dạng (ví dụ: email@gmail.com)');
       return;
     }
 
     setState(() => _dangXuLy = true);
 
     try {
+      // 3. Gửi yêu cầu đặt lại mật khẩu trực tiếp từ Supabase Auth
       await DichVuSupabase.guiMaKhoiPhuc(email);
-    } catch (e) {
-      // Tiep tuc gia lap sang trang OTP neu chua gui duoc
-    } finally {
-      if (mounted) {
-        setState(() => _dangXuLy = false);
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ManHinhXacThucOtp(email: email),
-          ),
-        );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Mã OTP khôi phục đã được gửi về Gmail $email. Vui lòng kiểm tra hộp thư!'),
+          backgroundColor: MauSac.chuDao,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+
+      // 4. Chuyển sang Màn hình nhập mã OTP
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ManHinhXacThucOtp(email: email),
+        ),
+      );
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      final msg = e.message.toLowerCase();
+      if (msg.contains('user not found') || msg.contains('not found') || msg.contains('invalid')) {
+        _hienThongBao('Địa chỉ Gmail "$email" chưa được đăng ký trong hệ thống!');
+      } else {
+        _hienThongBao('Lỗi gửi mã khôi phục: ${e.message}');
       }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ManHinhXacThucOtp(email: email),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _dangXuLy = false);
     }
+  }
+
+  void _hienThongBao(String noiDung) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(noiDung),
+        backgroundColor: MauSac.chiTieu,
+        duration: const Duration(seconds: 4),
+      ),
+    );
   }
 
   @override
@@ -83,7 +126,7 @@ class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
             children: [
               const SizedBox(height: KhoangCach.lon),
 
-              // Icon vong tron khoi phục mật khẩu phat sang
+              // Icon vòng tròn khôi phục mật khẩu phát sáng
               Container(
                 width: 90,
                 height: 90,
@@ -128,7 +171,7 @@ class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
 
               const SizedBox(height: KhoangCach.sieuLon),
 
-              // Form Nhap Gmail
+              // Form Nhập Gmail
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -165,6 +208,8 @@ class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
                     controller: _emailController,
                     style: const TextStyle(color: MauSac.chuChinh, fontSize: 14),
                     decoration: InputDecoration(
+                      hintText: 'email@gmail.com',
+                      hintStyle: const TextStyle(color: MauSac.chuMo),
                       prefixIcon: const Icon(Icons.email_outlined, color: MauSac.chuPhu, size: 20),
                       filled: true,
                       fillColor: MauSac.nenThe,
@@ -188,7 +233,7 @@ class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
 
               const SizedBox(height: KhoangCach.vua),
 
-              // Note thong bao time 5 phut
+              // Note thông báo thời gian 5 phút
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
@@ -209,7 +254,7 @@ class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
 
               const SizedBox(height: KhoangCach.lon),
 
-              // Nut Gửi mã xác thực
+              // Nút Gửi mã xác thực
               SizedBox(
                 width: double.infinity,
                 height: 52,
@@ -309,7 +354,7 @@ class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
 
               const SizedBox(height: KhoangCach.sieuLon),
 
-              // Link quay ve dang nhap
+              // Link quay về Đăng nhập
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
