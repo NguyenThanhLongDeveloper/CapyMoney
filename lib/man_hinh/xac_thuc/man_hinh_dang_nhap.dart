@@ -60,14 +60,15 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
   /// Đọc thông tin ghi nhớ đăng nhập và tài khoản đã đăng nhập lần cuối
   Future<void> _docThongTinGhiNho() async {
     final prefs = await SharedPreferences.getInstance();
-    final trangThaiGhiNho = prefs.getBool('capymoney_ghi_nho_trang_thai') ?? false;
     final emailDaLuu = prefs.getString('capymoney_ghi_nho_email') ?? '';
-    final matKhauDaLuu = prefs.getString('capymoney_ghi_nho_mat_khau') ?? '';
     final emailLanCuoi = prefs.getString('capymoney_da_dang_nhap_lan_cuoi_email') ?? emailDaLuu;
-    final tenLanCuoi = prefs.getString('capymoney_da_dang_nhap_lan_cuoi_ten') ?? 'Người dùng Capy';
+    final tenLanCuoi = prefs.getString('capymoney_da_dang_nhap_lan_cuoi_ten') ?? 'Nguyễn Hải Đăng';
 
-    // RÀNG BUỘC QUAN TRỌNG: Nếu KHÔNG TICK "Ghi nhớ đăng nhập", hủy session cũ để bắt buộc nhập Mật khẩu/Vân tay!
-    if (!trangThaiGhiNho && DichVuSupabase.client.auth.currentUser != null) {
+    // 1. Bắt buộc xóa trống ô nhập Mật khẩu khi ở Màn hình Đăng nhập
+    _matKhauController.clear();
+
+    // 2. Hủy session cũ nếu không ở chế độ tự động vào app
+    if (DichVuSupabase.client.auth.currentUser != null) {
       try {
         await DichVuSupabase.dangXuat();
       } catch (_) {}
@@ -75,18 +76,12 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
 
     if (mounted) {
       setState(() {
-        _ghiNhoDangNhap = trangThaiGhiNho;
+        _ghiNhoDangNhap = false; // Luôn trả checkbox Ghi nhớ đăng nhập về false
         _emailDaDangNhapLanCuoi = emailLanCuoi;
         _tenDaDangNhapLanCuoi = tenLanCuoi;
 
         if (emailLanCuoi.isNotEmpty) {
           _emailController.text = emailLanCuoi;
-        }
-
-        if (_ghiNhoDangNhap) {
-          _matKhauController.text = matKhauDaLuu;
-        } else {
-          _matKhauController.clear();
         }
       });
     }
@@ -248,10 +243,8 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
 
   @override
   Widget build(BuildContext context) {
-    // Kiểm tra xem có hiển thị Thẻ Avatar định danh tài khoản đã dùng gần nhất hay không
-    final bool hienProfileBadge = !_ghiNhoDangNhap &&
-        !_hienFormNhapEmailKhac &&
-        _emailDaDangNhapLanCuoi.isNotEmpty;
+    // Áp dụng Bảng Profile Badge cho tất cả các trường hợp có thông tin tài khoản đăng nhập gần nhất
+    final bool hienProfileBadge = !_hienFormNhapEmailKhac && _emailDaDangNhapLanCuoi.isNotEmpty;
 
     return Scaffold(
       backgroundColor: MauSac.nenChinh,

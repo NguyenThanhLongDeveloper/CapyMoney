@@ -100,6 +100,11 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
   /// Thao tác đăng xuất tài khoản
   Future<void> _xuLyDangXuat() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      // Đặt lại trạng thái ghi nhớ đăng nhập về false và xóa mật khẩu lưu tạm
+      await prefs.setBool('capymoney_ghi_nho_trang_thai', false);
+      await prefs.remove('capymoney_ghi_nho_mat_khau');
+
       await DichVuSupabase.dangXuat();
     } catch (_) {}
 
