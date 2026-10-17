@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../cau_hinh/cau_hinh_supabase.dart';
 import '../mo_hinh/tai_khoan_ngan_hang_model.dart';
@@ -88,6 +89,43 @@ class DichVuSupabase {
   /// Đăng xuất
   static Future<void> dangXuat() async {
     await client.auth.signOut();
+  }
+
+  /// Tải ảnh đại diện lên Supabase Storage Bucket 'avatars' (Tự động xóa ảnh cũ)
+  static Future<String?> taiAnhDaiDienLenStorage(XFile xFile, String userId) async {
+    try {
+      final bytes = await xFile.readAsBytes();
+      final fileExt = xFile.name.contains('.') ? xFile.name.split('.').last : 'jpg';
+      final filePath = '$userId/avatar.$fileExt';
+
+      // 1. Tự động tìm và xóa tất cả tệp ảnh cũ trong thư mục userId của bucket 'avatars'
+      try {
+        final danhSachFileCu = await client.storage.from('avatars').list(path: userId);
+        if (danhSachFileCu.isNotEmpty) {
+          final danhSachCanXoa = danhSachFileCu.map((f) => '$userId/${f.name}').toList();
+          await client.storage.from('avatars').remove(danhSachCanXoa);
+        }
+      } catch (e) {
+        debugPrint('Lưu ý khi xóa file avatar cũ: $e');
+      }
+
+      // 2. Upload file ảnh đại diện mới với thuộc tính upsert
+      await client.storage.from('avatars').uploadBinary(
+        filePath,
+        bytes,
+        fileOptions: FileOptions(
+          upsert: true,
+          contentType: 'image/$fileExt',
+        ),
+      );
+
+      // 3. Trả về URL công khai kèm timestamp để buộc làm mới cache
+      final rawPublicUrl = client.storage.from('avatars').getPublicUrl(filePath);
+      return '$rawPublicUrl?v=${DateTime.now().millisecondsSinceEpoch}';
+    } catch (e) {
+      debugPrint('Lỗi upload Supabase Storage: $e');
+      return null;
+    }
   }
 
   // ==========================================

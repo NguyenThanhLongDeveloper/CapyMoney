@@ -1,5 +1,10 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../giao_dien/chuan_thiet_ke/mau_sac.dart';
 import '../../giao_dien/chuan_thiet_ke/bo_goc.dart';
 import '../../giao_dien/chuan_thiet_ke/khoang_cach.dart';
@@ -22,8 +27,12 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
   bool _nhacNhoGhiChep = true;
   bool _dangNhapVanTay = false;
 
-  String _hoTen = 'Nguyễn Hải Đăng';
-  String _email = 'haidang.finance@gmail.com';
+  String _hoTen = '';
+  String _soDienThoai = '';
+  String _email = '';
+  String? _anhDaiDienPath;
+
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -31,7 +40,7 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
     _loadThongTinNguoiDung();
   }
 
-  /// Nạp thông tin người dùng từ Supabase Auth & SharedPreferences
+  /// Nạp thông tin người dùng từ Supabase CSDL, Auth & SharedPreferences
   Future<void> _loadThongTinNguoiDung() async {
     final user = DichVuSupabase.client.auth.currentUser;
     final prefs = await SharedPreferences.getInstance();
@@ -42,30 +51,276 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
         .toLowerCase()
         .trim();
 
-    final String hoTenCurrent = (user?.userMetadata?['ho_ten'] as String?) ??
+    String hoTenCurrent = (user?.userMetadata?['ho_ten'] as String?) ??
         prefs.getString('capymoney_da_dang_nhap_lan_cuoi_ten') ??
         'Nguyễn Hải Đăng';
 
-    // Đọc chính xác trạng thái bật/tắt vân tay
-    bool trangThaiVanTay = false;
-    if (emailCurrent.isNotEmpty && prefs.containsKey('capymoney_van_tay_bat_$emailCurrent')) {
-      trangThaiVanTay = prefs.getBool('capymoney_van_tay_bat_$emailCurrent')!;
-    } else if (prefs.containsKey('capymoney_van_tay_bat')) {
-      trangThaiVanTay = prefs.getBool('capymoney_van_tay_bat')!;
+    String sdtCurrent = (user?.userMetadata?['so_dien_thoai'] as String?) ??
+        prefs.getString('capymoney_da_dang_nhap_lan_cuoi_sdt') ??
+        '0912345678';
+
+    String? anhPathCurrent = prefs.getString('capymoney_anh_dai_dien_$emailCurrent');
+
+    // Thử truy vấn thêm từ bảng nguoi_dung trong Supabase
+    if (user != null) {
+      try {
+        final res = await DichVuSupabase.client
+            .from('nguoi_dung')
+            .select('ho_ten, so_dien_thoai, anh_dai_dien')
+            .eq('id', user.id)
+            .maybeSingle();
+
+        if (res != null) {
+          if (res['ho_ten'] != null && (res['ho_ten'] as String).isNotEmpty) {
+            hoTenCurrent = res['ho_ten'] as String;
+          }
+          if (res['so_dien_thoai'] != null && (res['so_dien_thoai'] as String).isNotEmpty) {
+            sdtCurrent = res['so_dien_thoai'] as String;
+          }
+          if (res['anh_dai_dien'] != null && (res['anh_dai_dien'] as String).isNotEmpty) {
+            anhPathCurrent = res['anh_dai_dien'] as String;
+          }
+        }
+      } catch (_) {}
     }
 
-    if (emailCurrent.isNotEmpty) {
-      await prefs.setString('capymoney_da_dang_nhap_lan_cuoi_email', emailCurrent);
-    }
+    final bool trangThaiVanTay =
+        prefs.getBool('capymoney_van_tay_bat_$emailCurrent') ??
+            prefs.getBool('capymoney_van_tay_bat') ??
+            false;
+
+    await prefs.setString('capymoney_da_dang_nhap_lan_cuoi_email', emailCurrent);
     await prefs.setString('capymoney_da_dang_nhap_lan_cuoi_ten', hoTenCurrent);
+    await prefs.setString('capymoney_da_dang_nhap_lan_cuoi_sdt', sdtCurrent);
 
     if (mounted) {
       setState(() {
         _email = emailCurrent.isNotEmpty ? emailCurrent : _email;
         _hoTen = hoTenCurrent;
+        _soDienThoai = sdtCurrent;
+        _anhDaiDienPath = anhPathCurrent;
         _dangNhapVanTay = trangThaiVanTay;
       });
     }
+  }
+
+  /// Thao tác tải / chọn ảnh đại diện từ Thư viện hoặc Máy ảnh
+  Future<void> _chonAnhDaiDien() async {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: MauSac.nenThe,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BoGoc.borderBottomSheet,
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: KhoangCach.lToanBoChuan,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Cập nhật ảnh đại diện',
+                  style: TextStyle(
+                    color: MauSac.chuChinh,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: KhoangCach.lon),
+                ListTile(
+                  leading: const Icon(Icons.photo_camera_rounded, color: MauSac.chuDao),
+                  title: const Text('Chụp ảnh mới (Camera)', style: TextStyle(color: MauSac.chuChinh)),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final XFile? image = await _picker.pickImage(source: ImageSource.camera);
+                    if (image != null) _capNhatAnhDaiDien(image);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library_rounded, color: MauSac.phu),
+                  title: const Text('Chọn từ Thư viện (Gallery)', style: TextStyle(color: MauSac.chuChinh)),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+                    if (image != null) _capNhatAnhDaiDien(image);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Lưu ảnh đại diện vào CSDL Supabase Storage, CSDL & SharedPreferences
+  Future<void> _capNhatAnhDaiDien(XFile xFile) async {
+    final prefs = await SharedPreferences.getInstance();
+    final user = DichVuSupabase.client.auth.currentUser;
+
+    setState(() => _anhDaiDienPath = xFile.path);
+    await prefs.setString('capymoney_anh_dai_dien_$_email', xFile.path);
+
+    if (user != null) {
+      try {
+        // 1. Tải ảnh lên Supabase Storage Bucket 'avatars'
+        final urlOnline = await DichVuSupabase.taiAnhDaiDienLenStorage(xFile, user.id);
+        final duongDanLuu = urlOnline ?? xFile.path;
+
+        if (urlOnline != null && urlOnline.isNotEmpty) {
+          setState(() => _anhDaiDienPath = urlOnline);
+          await prefs.setString('capymoney_anh_dai_dien_$_email', urlOnline);
+        }
+
+        // 2. Cập nhật đường dẫn vào bảng nguoi_dung
+        await DichVuSupabase.client
+            .from('nguoi_dung')
+            .update({'anh_dai_dien': duongDanLuu})
+            .eq('id', user.id);
+      } catch (_) {}
+    }
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Cập nhật ảnh đại diện thành công!'),
+        backgroundColor: MauSac.chuDao,
+        duration: Duration(seconds: 3),
+      ),
+    );
+  }
+
+  /// Hộp thoại chỉnh sửa Họ tên & Số điện thoại người dùng
+  Future<void> _hienHopThoaiSuaThongTin() async {
+    final hoTenCtrl = TextEditingController(text: _hoTen);
+    final sdtCtrl = TextEditingController(text: _soDienThoai);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: MauSac.nenThe,
+          shape: RoundedRectangleBorder(borderRadius: BoGoc.borderLon),
+          title: Row(
+            children: const [
+              Icon(Icons.edit_note_rounded, color: MauSac.chuDao, size: 24),
+              SizedBox(width: 8),
+              Text(
+                'Sửa thông tin cá nhân',
+                style: TextStyle(color: MauSac.chuChinh, fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Họ và tên', style: TextStyle(color: MauSac.chuPhu, fontSize: 12)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: hoTenCtrl,
+                  style: const TextStyle(color: MauSac.chuChinh, fontSize: 14),
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.person_outline_rounded, color: MauSac.chuPhu, size: 18),
+                    filled: true,
+                    fillColor: MauSac.nenNoi,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    border: OutlineInputBorder(borderRadius: BoGoc.borderVua, borderSide: const BorderSide(color: MauSac.duongVienNhat)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BoGoc.borderVua, borderSide: const BorderSide(color: MauSac.chuDao)),
+                  ),
+                ),
+
+                const SizedBox(height: KhoangCach.phatChuan),
+
+                const Text('Số điện thoại (10 chữ số)', style: TextStyle(color: MauSac.chuPhu, fontSize: 12)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: sdtCtrl,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  maxLength: 10,
+                  style: const TextStyle(color: MauSac.chuChinh, fontSize: 14),
+                  decoration: InputDecoration(
+                    counterText: '',
+                    prefixIcon: const Icon(Icons.phone_outlined, color: MauSac.chuPhu, size: 18),
+                    filled: true,
+                    fillColor: MauSac.nenNoi,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    border: OutlineInputBorder(borderRadius: BoGoc.borderVua, borderSide: const BorderSide(color: MauSac.duongVienNhat)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BoGoc.borderVua, borderSide: const BorderSide(color: MauSac.chuDao)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Hủy', style: TextStyle(color: MauSac.chuPhu)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final tenMoi = hoTenCtrl.text.trim();
+                final sdtMoi = sdtCtrl.text.trim();
+
+                if (tenMoi.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Họ và tên không được để trống'), backgroundColor: MauSac.chiTieu),
+                  );
+                  return;
+                }
+
+                if (sdtMoi.length != 10) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Số điện thoại phải gồm đúng 10 chữ số'), backgroundColor: MauSac.chiTieu),
+                  );
+                  return;
+                }
+
+                final user = DichVuSupabase.client.auth.currentUser;
+                final prefs = await SharedPreferences.getInstance();
+
+                await prefs.setString('capymoney_da_dang_nhap_lan_cuoi_ten', tenMoi);
+                await prefs.setString('capymoney_da_dang_nhap_lan_cuoi_sdt', sdtMoi);
+
+                if (user != null) {
+                  try {
+                    await DichVuSupabase.client.auth.updateUser(
+                      UserAttributes(data: {'ho_ten': tenMoi, 'so_dien_thoai': sdtMoi}),
+                    );
+                    await DichVuSupabase.client
+                        .from('nguoi_dung')
+                        .update({'ho_ten': tenMoi, 'so_dien_thoai': sdtMoi})
+                        .eq('id', user.id);
+                  } catch (_) {}
+                }
+
+                if (!context.mounted) return;
+
+                setState(() {
+                  _hoTen = tenMoi;
+                  _soDienThoai = sdtMoi;
+                });
+
+                Navigator.of(context, rootNavigator: true).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Cập nhật thông tin cá nhân thành công!'), backgroundColor: MauSac.chuDao),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: MauSac.chuDao,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(borderRadius: BoGoc.borderTron),
+              ),
+              child: const Text('Cập nhật', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   /// Cập nhật bật/tắt đăng nhập bằng vân tay cho tài khoản hiện tại
@@ -75,7 +330,6 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
 
     setState(() => _dangNhapVanTay = val);
 
-    // Lưu đồng bộ cả khóa theo email lẫn khóa toàn cục
     if (emailKey.isNotEmpty) {
       await prefs.setBool('capymoney_van_tay_bat_$emailKey', val);
     }
@@ -101,7 +355,6 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
   Future<void> _xuLyDangXuat() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      // Đặt lại trạng thái ghi nhớ đăng nhập về false và xóa mật khẩu lưu tạm
       await prefs.setBool('capymoney_ghi_nho_trang_thai', false);
       await prefs.remove('capymoney_ghi_nho_mat_khau');
 
@@ -229,35 +482,64 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
                     Row(
                       children: [
                         // Avatar tròn cỡ lớn + Icon camera
-                        Stack(
-                          alignment: Alignment.bottomRight,
-                          children: [
-                            Container(
-                              width: 68,
-                              height: 68,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(color: MauSac.chuDao, width: 2),
+                        GestureDetector(
+                          onTap: _chonAnhDaiDien,
+                          child: Stack(
+                            alignment: Alignment.bottomRight,
+                            children: [
+                              Container(
+                                width: 68,
+                                height: 68,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: MauSac.chuDao, width: 2),
+                                ),
+                                child: ClipOval(
+                                  child: _anhDaiDienPath != null && _anhDaiDienPath!.isNotEmpty
+                                      ? (kIsWeb ||
+                                              _anhDaiDienPath!.startsWith('http') ||
+                                              _anhDaiDienPath!.startsWith('blob:'))
+                                          ? Image.network(
+                                              _anhDaiDienPath!,
+                                              fit: BoxFit.cover,
+                                              width: 68,
+                                              height: 68,
+                                              errorBuilder: (context, error, stackTrace) => const CircleAvatar(
+                                                backgroundColor: MauSac.nenNoi,
+                                                child: Icon(Icons.person_rounded, color: MauSac.chuDao, size: 36),
+                                              ),
+                                            )
+                                          : Image.file(
+                                              File(_anhDaiDienPath!),
+                                              fit: BoxFit.cover,
+                                              width: 68,
+                                              height: 68,
+                                              errorBuilder: (context, error, stackTrace) => const CircleAvatar(
+                                                backgroundColor: MauSac.nenNoi,
+                                                child: Icon(Icons.person_rounded, color: MauSac.chuDao, size: 36),
+                                              ),
+                                            )
+                                      : const CircleAvatar(
+                                          backgroundColor: MauSac.nenNoi,
+                                          child: Icon(Icons.person_rounded, color: MauSac.chuDao, size: 36),
+                                        ),
+                                ),
                               ),
-                              child: const CircleAvatar(
-                                backgroundColor: MauSac.nenNoi,
-                                child: Icon(Icons.person_rounded, color: MauSac.chuDao, size: 36),
+                              Container(
+                                padding: const EdgeInsets.all(5),
+                                decoration: const BoxDecoration(
+                                  color: MauSac.chuDao,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.camera_alt_rounded, color: Colors.black, size: 12),
                               ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
-                                color: MauSac.chuDao,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.camera_alt_rounded, color: Colors.black, size: 12),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
 
                         const SizedBox(width: 16),
 
-                        // Tên + Nút sửa
+                        // Tên, SĐT + Nút sửa ✏️
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -268,23 +550,42 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
                                     child: Text(
                                       _hoTen,
                                       style: const TextStyle(
-                                        fontSize: 20,
+                                        fontSize: 18,
                                         fontWeight: FontWeight.bold,
                                         color: MauSac.chuChinh,
                                       ),
                                     ),
                                   ),
-                                  Container(
-                                    padding: const EdgeInsets.all(6),
-                                    decoration: BoxDecoration(
-                                      color: MauSac.nenNoi,
-                                      shape: BoxShape.circle,
+                                  GestureDetector(
+                                    onTap: _hienHopThoaiSuaThongTin,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: const BoxDecoration(
+                                        color: MauSac.nenNoi,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(Icons.edit_outlined, color: MauSac.chuDao, size: 16),
                                     ),
-                                    child: const Icon(Icons.edit_outlined, color: MauSac.chuPhu, size: 16),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 6),
+                              const SizedBox(height: 4),
+
+                              // Dòng nhỏ hiển thị Số điện thoại người dùng
+                              Row(
+                                children: [
+                                  const Icon(Icons.phone_android_rounded, color: MauSac.chuPhu, size: 13),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    _soDienThoai.isNotEmpty ? _soDienThoai : 'Chưa có SĐT',
+                                    style: const TextStyle(
+                                      color: MauSac.chuPhu,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ],
                           ),
                         ),
