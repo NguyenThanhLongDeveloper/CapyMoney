@@ -4,10 +4,14 @@ import '../../giao_dien/chuan_thiet_ke/bo_goc.dart';
 import '../../giao_dien/chuan_thiet_ke/bieu_tuong.dart';
 import '../tai_khoan/tab_tai_khoan.dart';
 
-/// Màn hình chính chứa Bottom Navigation Bar 4 Tab + Nút FAB '+' Trung tâm
+/// Màn hình Cấu trúc Chính (Main Navigation Screen)
+/// 
+/// Chứa Bottom Navigation Bar 4 Tab chuẩn và Nút Floating Action Button (+) trung tâm.
 class ManHinhChinhTab extends StatefulWidget {
+  /// Vị trí Tab mở ra ban đầu (Mặc định Tab 3 - Màn hình "Tôi")
   final int viTriTabBanDau;
-  const ManHinhChinhTab({super.key, this.viTriTabBanDau = 3}); // Tạm thời mặc định vào Tab 3 (Tôi)
+
+  const ManHinhChinhTab({super.key, this.viTriTabBanDau = 3});
 
   @override
   State<ManHinhChinhTab> createState() => _ManHinhChinhTabState();
@@ -22,6 +26,7 @@ class _ManHinhChinhTabState extends State<ManHinhChinhTab> {
     _viTriTabHienTai = widget.viTriTabBanDau;
   }
 
+  /// Danh sách các Tab màn hình chính
   final List<Widget> _danhSachTab = [
     // Tab 1: Tổng quan (Dashboard)
     const Center(
@@ -47,7 +52,7 @@ class _ManHinhChinhTabState extends State<ManHinhChinhTab> {
       ),
     ),
 
-    // Tab 4: Tôi (Profile & Cài đặt)
+    // Tab 4: Tôi (Profile cá nhân & Cài đặt)
     const TabTaiKhoan(),
   ];
 
@@ -55,12 +60,13 @@ class _ManHinhChinhTabState extends State<ManHinhChinhTab> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: MauSac.nenChinh,
+      // Dùng IndexedStack để giữ nguyên trạng thái UI của từng Tab khi chuyển đổi
       body: IndexedStack(
         index: _viTriTabHienTai,
         children: _danhSachTab,
       ),
 
-      // Nút '+' Thêm giao dịch trung tâm
+      // Nút Nổi '+' Thêm giao dịch trung tâm
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: Container(
         width: 58,
@@ -68,7 +74,7 @@ class _ManHinhChinhTabState extends State<ManHinhChinhTab> {
         margin: const EdgeInsets.only(top: 10),
         child: FloatingActionButton(
           onPressed: () {
-            // Mở menu chọn Chi tiêu / Thu nhập
+            // Thao tác mở menu chọn ghi chép Chi tiêu / Thu nhập
           },
           backgroundColor: MauSac.chuDao,
           elevation: 4,
@@ -112,7 +118,7 @@ class _ManHinhChinhTabState extends State<ManHinhChinhTab> {
                   nhan: 'Ngân sách',
                 ),
 
-                // Khoảng trống dành cho FAB Nút '+' Trung tâm
+                // Khoảng trống chừa vị trí cho nút '+' Trung tâm
                 const SizedBox(width: 48),
 
                 // Tab 3: Báo cáo
@@ -136,6 +142,7 @@ class _ManHinhChinhTabState extends State<ManHinhChinhTab> {
     );
   }
 
+  /// Hàm dựng Item Tab giao diện
   Widget _taoItemTab({
     required int index,
     required IconData icon,

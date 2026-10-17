@@ -1,15 +1,38 @@
-/// Mô hình quỹ tiết kiệm & mục tiêu tích lũy
+/// Mô hình dữ liệu Quỹ Tiết Kiệm & Mục Tiêu Tài Chính (Savings Goal Model)
+/// 
+/// Quản lý thông tin mục tiêu tích lũy tài sản trong bảng `quy_tiet_kiem`.
 class QuyTietKiemModel {
+  /// Mã định danh quỹ (UUID)
   final String id;
+
+  /// Mã người dùng sở hữu
   final String nguoiDungId;
+
+  /// Tên quỹ / mục tiêu tích lũy (Ví dụ: Đổi xe máy, Quỹ khẩn cấp)
   final String tenQuy;
+
+  /// Key biểu tượng đại diện
   final String bieuTuong;
+
+  /// Số tiền mục tiêu cần đạt
   final double soTienMucTieu;
+
+  /// Số tiền hiện có đã nạp
   final double soTienHienCo;
+
+  /// Nguồn tiền tự động trích hàng tháng (ID tài khoản/ví)
   final String? nguonTrichId;
+
+  /// Kỳ hạn tích lũy theo tháng
   final int kyHanThang;
+
+  /// Ngày dự kiến hoàn thành mục tiêu
   final DateTime? ngayVeDich;
+
+  /// Bật/Tắt nhắc nhở nạp tiền định kỳ
   final bool nhacNhoDinhKy;
+
+  /// Thời điểm tạo quỹ
   final DateTime? taoLuc;
 
   QuyTietKiemModel({
@@ -26,12 +49,15 @@ class QuyTietKiemModel {
     this.taoLuc,
   });
 
+  /// Tính phần trăm tiến độ hoàn thành mục tiêu (%)
   double get phanTramHoanThanh =>
       soTienMucTieu > 0 ? (soTienHienCo / soTienMucTieu) * 100 : 0;
 
+  /// Tính số tiền còn thiếu để về đích
   double get soTienConLai =>
       soTienMucTieu > soTienHienCo ? soTienMucTieu - soTienHienCo : 0;
 
+  /// Khởi tạo đối tượng QuyTietKiemModel từ bản ghi JSON của Supabase
   factory QuyTietKiemModel.fromJson(Map<String, dynamic> json) {
     return QuyTietKiemModel(
       id: json['id'] as String,
@@ -48,6 +74,7 @@ class QuyTietKiemModel {
     );
   }
 
+  /// Chuyển đổi đối tượng sang định dạng JSON để ghi vào Supabase
   Map<String, dynamic> toJson() {
     return {
       'id': id,

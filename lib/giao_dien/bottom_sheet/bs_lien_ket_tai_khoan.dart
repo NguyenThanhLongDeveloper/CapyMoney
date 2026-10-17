@@ -5,10 +5,13 @@ import '../chuan_thiet_ke/khoang_cach.dart';
 import '../../mo_hinh/tai_khoan_ngan_hang_model.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
 
-/// Bottom Sheet Quản lý Tài khoản & Ví nhận tiền
+/// Bảng Trượt (Bottom Sheet) Quản Lý Tài Khoản & Ví Nhận Tiền Liên Kết
+/// 
+/// Hiển thị danh sách các tài khoản ngân hàng / ví điện tử khả dụng và hỗ trợ liên kết nguồn mới.
 class BsLienKetTaiKhoan extends StatefulWidget {
   const BsLienKetTaiKhoan({super.key});
 
+  /// Hàm hỗ trợ mở Bảng trượt từ bất kỳ Context màn hình nào
   static Future<void> hienThi(BuildContext context) {
     return showModalBottomSheet(
       context: context,
@@ -23,12 +26,19 @@ class BsLienKetTaiKhoan extends StatefulWidget {
 }
 
 class _BsLienKetTaiKhoanState extends State<BsLienKetTaiKhoan> {
+  /// Bộ điều khiển nhập Số tài khoản / Số điện thoại ví
   final _stkController = TextEditingController(text: '098765432101');
+
+  /// Bộ điều khiển nhập Tên chủ tài khoản
   final _tenChuTaiKhoanController = TextEditingController(text: 'NGUYEN HAI DANG');
 
+  /// Ngân hàng / Loại ví được chọn mặc định
   String _nganHangChon = 'MB Bank - Ngân hàng Quân Đội';
+
+  /// Trạng thái đang lưu dữ liệu
   bool _dangTai = false;
 
+  /// Danh sách các Ngân hàng và Ví điện tử phổ biến tại Việt Nam
   final List<String> _danhSachNganHang = [
     'MB Bank - Ngân hàng Quân Đội',
     'Vietcombank Digital',
@@ -38,6 +48,7 @@ class _BsLienKetTaiKhoanState extends State<BsLienKetTaiKhoan> {
     'BIDV',
   ];
 
+  /// Danh sách các nguồn tài khoản hiện có
   List<TaiKhoanNganHangModel> _danhSachTaiKhoan = [
     TaiKhoanNganHangModel(
       id: '1',
@@ -65,6 +76,7 @@ class _BsLienKetTaiKhoanState extends State<BsLienKetTaiKhoan> {
     _loadDanhSachTaiKhoan();
   }
 
+  /// Nạp danh sách ví & tài khoản ngân hàng thực tế từ Supabase CSDL
   Future<void> _loadDanhSachTaiKhoan() async {
     try {
       final danhSach = await DichVuSupabase.layDanhSachTaiKhoan();
@@ -74,6 +86,7 @@ class _BsLienKetTaiKhoanState extends State<BsLienKetTaiKhoan> {
     } catch (_) {}
   }
 
+  /// Thao tác lưu tài khoản hoặc ví liên kết mới vào Supabase
   Future<void> _luuTaiKhoanMoi() async {
     final stk = _stkController.text.trim();
     final tenChu = _tenChuTaiKhoanController.text.trim();
@@ -129,6 +142,7 @@ class _BsLienKetTaiKhoanState extends State<BsLienKetTaiKhoan> {
 
   @override
   Widget build(BuildContext context) {
+    // Tự động đẩy khung Bottom Sheet lên khi bàn phím ảo xuất hiện
     final keyboardSpace = MediaQuery.of(context).viewInsets.bottom;
 
     return Container(
@@ -144,7 +158,7 @@ class _BsLienKetTaiKhoanState extends State<BsLienKetTaiKhoan> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Thanh kéo xám Top
+              // Thanh kéo xám Top chỉ dẫn vuốt xuống
               Center(
                 child: Container(
                   width: 40,
@@ -158,7 +172,7 @@ class _BsLienKetTaiKhoanState extends State<BsLienKetTaiKhoan> {
 
               const SizedBox(height: KhoangCach.vua),
 
-              // Header Bar
+              // SECTION 1: HEADER BẢNG TRƯỢT & TIÊU ĐỀ
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -195,7 +209,7 @@ class _BsLienKetTaiKhoanState extends State<BsLienKetTaiKhoan> {
 
               const SizedBox(height: KhoangCach.lon),
 
-              // Danh sách các ví hiện tại
+              // SECTION 2: DANH SÁCH TÀI KHOẢN VÍ HIỆN CÓ
               Column(
                 children: _danhSachTaiKhoan.map((tk) {
                   return Container(
@@ -277,7 +291,7 @@ class _BsLienKetTaiKhoanState extends State<BsLienKetTaiKhoan> {
 
               const SizedBox(height: KhoangCach.vua),
 
-              // Form Thêm tài khoản hoặc ví mới
+              // SECTION 3: FORM NHẬP TÀI KHOẢN HOẶC VÍ MỚI
               Container(
                 padding: KhoangCach.lToanBoChuan,
                 decoration: BoxDecoration(
@@ -339,7 +353,7 @@ class _BsLienKetTaiKhoanState extends State<BsLienKetTaiKhoan> {
 
                     const SizedBox(height: KhoangCach.phatChuan),
 
-                    // Input Số tài khoản
+                    // Ô nhập Số tài khoản
                     const Text('Số tài khoản / Số điện thoại ví', style: TextStyle(color: MauSac.chuPhu, fontSize: 12)),
                     const SizedBox(height: 6),
                     TextField(
@@ -367,7 +381,7 @@ class _BsLienKetTaiKhoanState extends State<BsLienKetTaiKhoan> {
 
                     const SizedBox(height: KhoangCach.phatChuan),
 
-                    // Input Tên chủ tài khoản
+                    // Ô nhập Tên chủ tài khoản
                     const Text('Tên chủ tài khoản (không dấu)', style: TextStyle(color: MauSac.chuPhu, fontSize: 12)),
                     const SizedBox(height: 6),
                     TextField(
@@ -398,7 +412,7 @@ class _BsLienKetTaiKhoanState extends State<BsLienKetTaiKhoan> {
 
               const SizedBox(height: KhoangCach.lon),
 
-              // Cụm Nút Quay lại & Xong
+              // SECTION 4: NÚT ĐIỀU HƯỚNG QUAY LẠI VÀ LƯU LẠI
               Row(
                 children: [
                   Expanded(

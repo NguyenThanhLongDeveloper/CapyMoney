@@ -1,15 +1,38 @@
-/// Mô hình nhật ký giao dịch thu chi
+/// Mô hình dữ liệu Nhật ký Giao dịch Thu Chi (Transaction Model)
+/// 
+/// Lưu trữ lịch sử biến động số dư trong bảng `giao_dich`.
 class GiaoDichModel {
+  /// Mã định danh giao dịch (UUID)
   final String id;
+
+  /// Mã người dùng thực hiện
   final String nguoiDungId;
+
+  /// Mã tài khoản ngân hàng / ví liên kết
   final String? taiKhoanId;
+
+  /// Mã danh mục thu chi
   final String? danhMucId;
-  final String loaiGiaoDich; // chi_tieu hoac thu_nhap
+
+  /// Phân loại giao dịch: `chi_tieu` hoặc `thu_nhap`
+  final String loaiGiaoDich;
+
+  /// Số tiền giao dịch (luôn là số dương)
   final double soTien;
+
+  /// Ghi chú / nội dung diễn giải
   final String? ghiChu;
+
+  /// Đường dẫn URL ảnh hóa đơn chụp kèm
   final String? anhHoaDon;
+
+  /// Ngày giờ thực hiện phát sinh giao dịch
   final DateTime ngayGiaoDich;
-  final String trangThai; // da_tru, da_nhan, cho_duyet
+
+  /// Trạng thái giao dịch: `da_tru`, `da_nhan`, `cho_duyet`
+  final String trangThai;
+
+  /// Thời điểm ghi nhận vào hệ thống
   final DateTime? taoLuc;
 
   GiaoDichModel({
@@ -26,6 +49,7 @@ class GiaoDichModel {
     this.taoLuc,
   });
 
+  /// Khởi tạo đối tượng GiaoDichModel từ bản ghi JSON của Supabase
   factory GiaoDichModel.fromJson(Map<String, dynamic> json) {
     return GiaoDichModel(
       id: json['id'] as String,
@@ -44,6 +68,7 @@ class GiaoDichModel {
     );
   }
 
+  /// Chuyển đổi đối tượng sang định dạng JSON để ghi vào Supabase
   Map<String, dynamic> toJson() {
     return {
       'id': id,

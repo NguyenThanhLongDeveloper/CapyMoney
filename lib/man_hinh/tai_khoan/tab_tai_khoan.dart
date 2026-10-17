@@ -15,7 +15,9 @@ import '../../giao_dien/bottom_sheet/bs_lien_ket_tai_khoan.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
 import '../xac_thuc/man_hinh_dang_nhap.dart';
 
-/// Tab 4: Màn hình Tài khoản Tôi (Profile & Settings)
+/// Tab 4: Màn hình Tài khoản Cá nhân "Tôi" (Profile & Security Settings)
+/// 
+/// Quản lý thông tin hồ sơ, tải/đổi avatar, cập nhật SĐT, liên kết ví ngân hàng và bật/tắt sinh trắc học vân tay.
 class TabTaiKhoan extends StatefulWidget {
   const TabTaiKhoan({super.key});
 
@@ -24,15 +26,28 @@ class TabTaiKhoan extends StatefulWidget {
 }
 
 class _TabTaiKhoanState extends State<TabTaiKhoan> {
+  /// Cấu hình bật/tắt nhận báo cáo tuần qua Gmail
   bool _baoCaoGmail = true;
+
+  /// Cấu hình bật/tắt nhắc nhở ghi chép giao dịch 21:30
   bool _nhacNhoGhiChep = true;
+
+  /// Cấu hình bật/tắt đăng nhập bằng vân tay cho tài khoản hiện tại
   bool _dangNhapVanTay = false;
 
+  /// Họ và tên người dùng
   String _hoTen = '';
+
+  /// Số điện thoại (10 chữ số)
   String _soDienThoai = '';
+
+  /// Địa chỉ Gmail liên kết
   String _email = '';
+
+  /// Đường dẫn URL ảnh đại diện (Online hoặc Cục bộ)
   String? _anhDaiDienPath;
 
+  /// Thư viện chọn/chụp ảnh ImagePicker
   final ImagePicker _picker = ImagePicker();
 
   @override
@@ -62,7 +77,7 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
 
     String? anhPathCurrent = prefs.getString('capymoney_anh_dai_dien_$emailCurrent');
 
-    // Thử truy vấn thêm từ bảng nguoi_dung trong Supabase
+    // Ưu tiên đọc thông tin mới nhất trực tiếp từ CSDL Supabase
     if (user != null) {
       try {
         final res = await DichVuSupabase.client
@@ -107,7 +122,7 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
     }
   }
 
-  /// Thao tác tải / chọn ảnh đại diện từ Thư viện hoặc Máy ảnh
+  /// Mở Bottom Sheet chọn nguồn ảnh đại diện từ Thư viện (Gallery) hoặc Máy ảnh (Camera)
   Future<void> _chonAnhDaiDien() async {
     showModalBottomSheet(
       context: context,
@@ -157,21 +172,21 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
     );
   }
 
-  /// Lưu ảnh đại diện vào CSDL Supabase Storage, CSDL & SharedPreferences
+  /// Lưu ảnh đại diện mới lên Supabase Storage, CSDL & SharedPreferences
   Future<void> _capNhatAnhDaiDien(XFile xFile) async {
     final prefs = await SharedPreferences.getInstance();
     final user = DichVuSupabase.client.auth.currentUser;
 
-    // Hiển thị tạm thời trong khi chờ tải lên
+    // Hiển thị tạm thời bằng file/blob cục bộ trong khi chờ tải lên
     setState(() => _anhDaiDienPath = xFile.path);
 
     if (user != null) {
       try {
-        // 1. Tải ảnh lên Supabase Storage Bucket 'avatars' (tự động xóa ảnh cũ)
+        // 1. Tải ảnh lên Supabase Storage Bucket 'avatars' (tự động xóa ảnh cũ & gắn timestamp độc nhất)
         final urlOnline = await DichVuSupabase.taiAnhDaiDienLenStorage(xFile, user.id);
 
         if (urlOnline != null && urlOnline.isNotEmpty) {
-          // 2. Cập nhật URL công khai online vào state và bộ nhớ máy
+          // 2. Cập nhật URL công khai mới nhất vào state & bộ nhớ máy
           setState(() => _anhDaiDienPath = urlOnline);
           await prefs.setString('capymoney_anh_dai_dien_$_email', urlOnline);
 
@@ -199,7 +214,7 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
     );
   }
 
-  /// Hộp thoại chỉnh sửa Họ tên & Số điện thoại người dùng
+  /// Hộp thoại Chỉnh sửa Họ tên & Số điện thoại người dùng
   Future<void> _hienHopThoaiSuaThongTin() async {
     final hoTenCtrl = TextEditingController(text: _hoTen);
     final sdtCtrl = TextEditingController(text: _soDienThoai);
@@ -330,7 +345,7 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
     );
   }
 
-  /// Cập nhật bật/tắt đăng nhập bằng vân tay cho tài khoản hiện tại
+  /// Cập nhật bật/tắt đăng nhập bằng vân tay cho tài khoản hiện tại trong SharedPreferences
   Future<void> _thayDoiTrangThaiVanTay(bool val) async {
     final prefs = await SharedPreferences.getInstance();
     final emailKey = _email.toLowerCase().trim();
@@ -358,7 +373,7 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
     );
   }
 
-  /// Thao tác đăng xuất tài khoản
+  /// Thao tác đăng xuất tài khoản và xóa thông tin phiên làm việc
   Future<void> _xuLyDangXuat() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -383,636 +398,637 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
       body: SafeArea(
         child: DapUng.bocKhungNoiDung(
           child: SingleChildScrollView(
-          padding: KhoangCach.lNgangLon,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: KhoangCach.phatChuan),
+            padding: KhoangCach.lNgangLon,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: KhoangCach.phatChuan),
 
-              // Header Bar: Logo + Capy Money (Tôi) + Bell + Avatar
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: Image.asset(
-                          HinhAnh.logoCapy,
-                          width: 36,
-                          height: 36,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            width: 36,
-                            height: 36,
-                            color: MauSac.nenNoi,
-                            child: const Icon(BieuTuong.capybaraThantai, color: MauSac.canhBao, size: 20),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text(
-                            'Capy Money',
-                            style: TextStyle(
-                              color: MauSac.chuChinh,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            'Tôi',
-                            style: TextStyle(
-                              color: MauSac.chuPhu,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-
-                  Row(
-                    children: [
-                      // Chuông thông báo
-                      Stack(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: MauSac.nenThe,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: MauSac.duongVienNhat),
-                            ),
-                            child: const Icon(Icons.notifications_none_rounded, color: MauSac.chuChinh, size: 20),
-                          ),
-                          Positioned(
-                            right: 8,
-                            top: 8,
-                            child: Container(
-                              width: 8,
-                              height: 8,
-                              decoration: const BoxDecoration(
-                                color: MauSac.chuDao,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 10),
-
-                      // Avatar góc phải
-                      CircleAvatar(
-                        radius: 18,
-                        backgroundColor: MauSac.nenNoi,
-                        child: const Icon(Icons.person_rounded, color: MauSac.chuDao, size: 20),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: KhoangCach.lon),
-
-              // Card Hồ sơ cá nhân
-              Container(
-                padding: KhoangCach.lToanBoLon,
-                decoration: BoxDecoration(
-                  color: MauSac.nenThe,
-                  borderRadius: BoGoc.borderLon,
-                  border: Border.all(color: MauSac.duongVienNhat),
-                ),
-                child: Column(
+                // SECTION 1: HEADER BAR LOGO CAPY MONEY (TÔI) VA BELL NOTIFICATION
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Row(
                       children: [
-                        // Avatar tròn cỡ lớn + Icon camera
-                        GestureDetector(
-                          onTap: _chonAnhDaiDien,
-                          child: Stack(
-                            alignment: Alignment.bottomRight,
-                            children: [
-                              Container(
-                                width: 68,
-                                height: 68,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: MauSac.chuDao, width: 2),
-                                ),
-                                child: ClipOval(
-                                  child: _anhDaiDienPath != null && _anhDaiDienPath!.isNotEmpty
-                                      ? (kIsWeb ||
-                                              _anhDaiDienPath!.startsWith('http') ||
-                                              _anhDaiDienPath!.startsWith('blob:'))
-                                          ? Image.network(
-                                              _anhDaiDienPath!,
-                                              fit: BoxFit.cover,
-                                              width: 68,
-                                              height: 68,
-                                              errorBuilder: (context, error, stackTrace) => const CircleAvatar(
-                                                backgroundColor: MauSac.nenNoi,
-                                                child: Icon(Icons.person_rounded, color: MauSac.chuDao, size: 36),
-                                              ),
-                                            )
-                                          : Image.file(
-                                              File(_anhDaiDienPath!),
-                                              fit: BoxFit.cover,
-                                              width: 68,
-                                              height: 68,
-                                              errorBuilder: (context, error, stackTrace) => const CircleAvatar(
-                                                backgroundColor: MauSac.nenNoi,
-                                                child: Icon(Icons.person_rounded, color: MauSac.chuDao, size: 36),
-                                              ),
-                                            )
-                                      : const CircleAvatar(
-                                          backgroundColor: MauSac.nenNoi,
-                                          child: Icon(Icons.person_rounded, color: MauSac.chuDao, size: 36),
-                                        ),
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.all(5),
-                                decoration: const BoxDecoration(
-                                  color: MauSac.chuDao,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(Icons.camera_alt_rounded, color: Colors.black, size: 12),
-                              ),
-                            ],
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.asset(
+                            HinhAnh.logoCapy,
+                            width: 36,
+                            height: 36,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Container(
+                              width: 36,
+                              height: 36,
+                              color: MauSac.nenNoi,
+                              child: const Icon(BieuTuong.capybaraThantai, color: MauSac.canhBao, size: 20),
+                            ),
                           ),
                         ),
-
-                        const SizedBox(width: 16),
-
-                        // Tên, SĐT + Nút sửa ✏️
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      _hoTen,
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: MauSac.chuChinh,
-                                      ),
-                                    ),
-                                  ),
-                                  GestureDetector(
-                                    onTap: _hienHopThoaiSuaThongTin,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: const BoxDecoration(
-                                        color: MauSac.nenNoi,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(Icons.edit_outlined, color: MauSac.chuDao, size: 16),
-                                    ),
-                                  ),
-                                ],
+                        const SizedBox(width: 10),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text(
+                              'Capy Money',
+                              style: TextStyle(
+                                color: MauSac.chuChinh,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
                               ),
-                              const SizedBox(height: 4),
-
-                              // Dòng nhỏ hiển thị Số điện thoại người dùng
-                              Row(
-                                children: [
-                                  const Icon(Icons.phone_android_rounded, color: MauSac.chuPhu, size: 13),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    _soDienThoai.isNotEmpty ? _soDienThoai : 'Chưa có SĐT',
-                                    style: const TextStyle(
-                                      color: MauSac.chuPhu,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
+                            ),
+                            Text(
+                              'Tôi',
+                              style: TextStyle(
+                                color: MauSac.chuPhu,
+                                fontSize: 12,
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
 
-                    const SizedBox(height: KhoangCach.vua),
+                    Row(
+                      children: [
+                        // Chuông thông báo
+                        Stack(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: MauSac.nenThe,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: MauSac.duongVienNhat),
+                              ),
+                              child: const Icon(Icons.notifications_none_rounded, color: MauSac.chuChinh, size: 20),
+                            ),
+                            Positioned(
+                              right: 8,
+                              top: 8,
+                              child: Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: MauSac.chuDao,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(width: 10),
 
-                    // Thẻ Định danh Google Account
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: MauSac.nenNoi,
-                        borderRadius: BoGoc.borderVua,
-                      ),
-                      child: Row(
+                        // Avatar nhỏ góc phải
+                        CircleAvatar(
+                          radius: 18,
+                          backgroundColor: MauSac.nenNoi,
+                          child: const Icon(Icons.person_rounded, color: MauSac.chuDao, size: 20),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: KhoangCach.lon),
+
+                // SECTION 2: CARD HỒ SƠ CÁ NHÂN (AVATAR, HỌ TÊN, SĐT VA ĐỊNH DANH GMAIL)
+                Container(
+                  padding: KhoangCach.lToanBoLon,
+                  decoration: BoxDecoration(
+                    color: MauSac.nenThe,
+                    borderRadius: BoGoc.borderLon,
+                    border: Border.all(color: MauSac.duongVienNhat),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
                         children: [
-                          const Text(
-                            'G',
-                            style: TextStyle(
-                              color: Colors.red,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                          // Avatar tròn cỡ lớn + Nút Camera
+                          GestureDetector(
+                            onTap: _chonAnhDaiDien,
+                            child: Stack(
+                              alignment: Alignment.bottomRight,
+                              children: [
+                                Container(
+                                  width: 68,
+                                  height: 68,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: MauSac.chuDao, width: 2),
+                                  ),
+                                  child: ClipOval(
+                                    child: _anhDaiDienPath != null && _anhDaiDienPath!.isNotEmpty
+                                        ? (kIsWeb ||
+                                                _anhDaiDienPath!.startsWith('http') ||
+                                                _anhDaiDienPath!.startsWith('blob:'))
+                                            ? Image.network(
+                                                _anhDaiDienPath!,
+                                                fit: BoxFit.cover,
+                                                width: 68,
+                                                height: 68,
+                                                errorBuilder: (context, error, stackTrace) => const CircleAvatar(
+                                                  backgroundColor: MauSac.nenNoi,
+                                                  child: Icon(Icons.person_rounded, color: MauSac.chuDao, size: 36),
+                                                ),
+                                              )
+                                            : Image.file(
+                                                File(_anhDaiDienPath!),
+                                                fit: BoxFit.cover,
+                                                width: 68,
+                                                height: 68,
+                                                errorBuilder: (context, error, stackTrace) => const CircleAvatar(
+                                                  backgroundColor: MauSac.nenNoi,
+                                                  child: Icon(Icons.person_rounded, color: MauSac.chuDao, size: 36),
+                                                ),
+                                              )
+                                        : const CircleAvatar(
+                                            backgroundColor: MauSac.nenNoi,
+                                            child: Icon(Icons.person_rounded, color: MauSac.chuDao, size: 36),
+                                          ),
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.all(5),
+                                  decoration: const BoxDecoration(
+                                    color: MauSac.chuDao,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.camera_alt_rounded, color: Colors.black, size: 12),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(width: 10),
+
+                          const SizedBox(width: 16),
+
+                          // Tên, SĐT + Nút sửa ✏️
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
-                                  children: const [
-                                    Text(
-                                      'TÀI KHOẢN GOOGLE',
-                                      style: TextStyle(
-                                        color: MauSac.chuPhu,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 0.5,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        _hoTen,
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: MauSac.chuChinh,
+                                        ),
                                       ),
                                     ),
-                                    SizedBox(width: 4),
-                                    Icon(Icons.check_circle_rounded, color: MauSac.chuDao, size: 12),
+                                    GestureDetector(
+                                      onTap: _hienHopThoaiSuaThongTin,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(6),
+                                        decoration: const BoxDecoration(
+                                          color: MauSac.nenNoi,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(Icons.edit_outlined, color: MauSac.chuDao, size: 16),
+                                      ),
+                                    ),
                                   ],
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  _email,
-                                  style: const TextStyle(
-                                    color: MauSac.chuChinh,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                const SizedBox(height: 4),
+
+                                // Dòng nhỏ hiển thị Số điện thoại
+                                Row(
+                                  children: [
+                                    const Icon(Icons.phone_android_rounded, color: MauSac.chuPhu, size: 13),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      _soDienThoai.isNotEmpty ? _soDienThoai : 'Chưa có SĐT',
+                                      style: const TextStyle(
+                                        color: MauSac.chuPhu,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
-              ),
 
-              const SizedBox(height: KhoangCach.phatChuan),
+                      const SizedBox(height: KhoangCach.vua),
 
-              // Cụm 2 Thẻ Thống kê Tinh gọn
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: KhoangCach.lToanBoChuan,
-                      decoration: BoxDecoration(
-                        color: MauSac.nenThe,
-                        borderRadius: BoGoc.borderVua,
-                        border: Border.all(color: MauSac.duongVienNhat),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: MauSac.nenNoi,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(Icons.account_balance_wallet_rounded,
-                                color: MauSac.chuDao, size: 18),
-                          ),
-                          const SizedBox(height: 10),
-                          const Text(
-                            '3 Ví',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: MauSac.chuChinh,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            'Tài khoản hoạt động',
-                            style: TextStyle(color: MauSac.chuPhu, fontSize: 11),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Container(
-                      padding: KhoangCach.lToanBoChuan,
-                      decoration: BoxDecoration(
-                        color: MauSac.nenThe,
-                        borderRadius: BoGoc.borderVua,
-                        border: Border.all(color: MauSac.duongVienNhat),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: MauSac.nenNoi,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(Icons.access_time_rounded,
-                                color: MauSac.phu, size: 18),
-                          ),
-                          const SizedBox(height: 10),
-                          const Text(
-                            '12 Thg',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: MauSac.chuChinh,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            'Thời gian gắn bó',
-                            style: TextStyle(color: MauSac.chuPhu, fontSize: 11),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: KhoangCach.lon),
-
-              // SECTION 1: TÀI CHÍNH & TÀI KHOẢN
-              const Text(
-                'TÀI CHÍNH & TÀI KHOẢN',
-                style: TextStyle(
-                  color: MauSac.chuPhu,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.8,
-                ),
-              ),
-
-              const SizedBox(height: KhoangCach.nho),
-
-              Container(
-                decoration: BoxDecoration(
-                  color: MauSac.nenThe,
-                  borderRadius: BoGoc.borderVua,
-                  border: Border.all(color: MauSac.duongVienNhat),
-                ),
-                child: Column(
-                  children: [
-                    // Tài khoản & Ví liên kết
-                    ListTile(
-                      onTap: () => BsLienKetTaiKhoan.hienThi(context),
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
+                      // Thẻ Định danh Tài khoản Google
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         decoration: BoxDecoration(
                           color: MauSac.nenNoi,
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BoGoc.borderVua,
                         ),
-                        child: const Icon(Icons.account_balance_wallet_rounded,
-                            color: MauSac.chuDao, size: 20),
-                      ),
-                      title: Row(
-                        children: [
-                          const Expanded(
-                            child: Text(
-                              'Tài khoản & Ví liên kết',
+                        child: Row(
+                          children: [
+                            const Text(
+                              'G',
                               style: TextStyle(
-                                color: MauSac.chuChinh,
-                                fontSize: 14,
+                                color: Colors.red,
+                                fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                          ),
-                          Row(
-                            children: [
-                              _taoChipVi('VCB'),
-                              const SizedBox(width: 4),
-                              _taoChipVi('TCB'),
-                              const SizedBox(width: 4),
-                              _taoChipVi('MoMo'),
-                              const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: MauSac.chuDao.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Text(
-                                  '3 nguồn',
-                                  style: TextStyle(
-                                    color: MauSac.chuDao,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: const [
+                                      Text(
+                                        'TÀI KHOẢN GOOGLE',
+                                        style: TextStyle(
+                                          color: MauSac.chuPhu,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                      SizedBox(width: 4),
+                                      Icon(Icons.check_circle_rounded, color: MauSac.chuDao, size: 12),
+                                    ],
                                   ),
-                                ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    _email,
+                                    style: const TextStyle(
+                                      color: MauSac.chuChinh,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      trailing: const Icon(Icons.chevron_right_rounded, color: MauSac.chuPhu, size: 20),
-                    ),
-
-                    const Divider(color: MauSac.duongVienNhat, height: 1),
-
-                    // Báo cáo tuần qua Gmail
-                    ListTile(
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: MauSac.nenNoi,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.mark_email_unread_rounded,
-                            color: MauSac.phu, size: 20),
-                      ),
-                      title: const Text(
-                        'Báo cáo tuần qua Gmail',
-                        style: TextStyle(
-                          color: MauSac.chuChinh,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      subtitle: const Text(
-                        'Gửi bảng phân tích tự động mỗi Chủ Nhật',
-                        style: TextStyle(color: MauSac.chuPhu, fontSize: 11),
-                      ),
-                      trailing: Switch(
-                        value: _baoCaoGmail,
-                        activeTrackColor: MauSac.chuDao,
-                        onChanged: (val) => setState(() => _baoCaoGmail = val),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: KhoangCach.lon),
-
-              // SECTION 2: BẢO MẬT & HỆ THỐNG
-              const Text(
-                'BẢO MẬT & HỆ THỐNG',
-                style: TextStyle(
-                  color: MauSac.chuPhu,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.8,
-                ),
-              ),
-
-              const SizedBox(height: KhoangCach.nho),
-
-              Container(
-                decoration: BoxDecoration(
-                  color: MauSac.nenThe,
-                  borderRadius: BoGoc.borderVua,
-                  border: Border.all(color: MauSac.duongVienNhat),
-                ),
-                child: Column(
-                  children: [
-                    // Nhắc nhở ghi chép
-                    ListTile(
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: MauSac.nenNoi,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.notifications_active_rounded,
-                            color: MauSac.canhBao, size: 20),
-                      ),
-                      title: const Text(
-                        'Nhắc nhở ghi chép',
-                        style: TextStyle(
-                          color: MauSac.chuChinh,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      subtitle: const Text(
-                        'Thông báo mỗi 21:30 hàng ngày',
-                        style: TextStyle(color: MauSac.chuPhu, fontSize: 11),
-                      ),
-                      trailing: Switch(
-                        value: _nhacNhoGhiChep,
-                        activeTrackColor: MauSac.chuDao,
-                        onChanged: (val) => setState(() => _nhacNhoGhiChep = val),
-                      ),
-                    ),
-
-                    const Divider(color: MauSac.duongVienNhat, height: 1),
-
-                    // Đăng nhập bằng vân tay
-                    ListTile(
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: MauSac.nenNoi,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.fingerprint_rounded,
-                            color: MauSac.chuDao, size: 20),
-                      ),
-                      title: const Text(
-                        'Đăng nhập bằng vân tay',
-                        style: TextStyle(
-                          color: MauSac.chuChinh,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      subtitle: const Text(
-                        'Xác thực sinh trắc học nhanh và an toàn',
-                        style: TextStyle(color: MauSac.chuPhu, fontSize: 11),
-                      ),
-                      trailing: Switch(
-                        value: _dangNhapVanTay,
-                        activeTrackColor: MauSac.chuDao,
-                        onChanged: (val) => _thayDoiTrangThaiVanTay(val),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: KhoangCach.lon),
-
-              // Nút Đăng xuất tài khoản Google
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _xuLyDangXuat,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: MauSac.nenThe,
-                    foregroundColor: MauSac.chiTieu,
-                    elevation: 0,
-                    side: const BorderSide(color: MauSac.duongVienNhat),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BoGoc.borderVua,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Icon(Icons.logout_rounded, color: MauSac.chiTieu, size: 20),
-                      SizedBox(width: 8),
-                      Text(
-                        'Đăng xuất tài khoản Google',
-                        style: TextStyle(
-                          color: MauSac.chiTieu,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
 
-              const SizedBox(height: KhoangCach.lon),
+                const SizedBox(height: KhoangCach.phatChuan),
 
-              // Footer thông tin ứng dụng
-              Center(
-                child: Column(
-                  children: const [
-                    Text(
-                      'Capy Money Studio Mobile Edition • v2.4.0 (Build 412)',
-                      style: TextStyle(
-                        color: MauSac.chuDao,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
+                // SECTION 3: CỤM 2 THẺ THỐNG KÊ VÍ & THỜI GIAN
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: KhoangCach.lToanBoChuan,
+                        decoration: BoxDecoration(
+                          color: MauSac.nenThe,
+                          borderRadius: BoGoc.borderVua,
+                          border: Border.all(color: MauSac.duongVienNhat),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: MauSac.nenNoi,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.account_balance_wallet_rounded,
+                                  color: MauSac.chuDao, size: 18),
+                            ),
+                            const SizedBox(height: 10),
+                            const Text(
+                              '3 Ví',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: MauSac.chuChinh,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              'Tài khoản hoạt động',
+                              style: TextStyle(color: MauSac.chuPhu, fontSize: 11),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Bảo mật mã hóa 256–bit AES chuẩn tổ chức tài chính',
-                      style: TextStyle(
-                        color: MauSac.chuMo,
-                        fontSize: 11,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Container(
+                        padding: KhoangCach.lToanBoChuan,
+                        decoration: BoxDecoration(
+                          color: MauSac.nenThe,
+                          borderRadius: BoGoc.borderVua,
+                          border: Border.all(color: MauSac.duongVienNhat),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: MauSac.nenNoi,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.access_time_rounded,
+                                  color: MauSac.phu, size: 18),
+                            ),
+                            const SizedBox(height: 10),
+                            const Text(
+                              '12 Thg',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: MauSac.chuChinh,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              'Thời gian gắn bó',
+                              style: TextStyle(color: MauSac.chuPhu, fontSize: 11),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ),
 
-              const SizedBox(height: KhoangCach.lon),
-            ],
+                const SizedBox(height: KhoangCach.lon),
+
+                // SECTION 4: QUẢN LÝ TÀI CHÍNH & TÀI KHOẢN
+                const Text(
+                  'TÀI CHÍNH & TÀI KHOẢN',
+                  style: TextStyle(
+                    color: MauSac.chuPhu,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+
+                const SizedBox(height: KhoangCach.nho),
+
+                Container(
+                  decoration: BoxDecoration(
+                    color: MauSac.nenThe,
+                    borderRadius: BoGoc.borderVua,
+                    border: Border.all(color: MauSac.duongVienNhat),
+                  ),
+                  child: Column(
+                    children: [
+                      // Nút Mở Bottom Sheet Liên kết ví & tài khoản ngân hàng
+                      ListTile(
+                        onTap: () => BsLienKetTaiKhoan.hienThi(context),
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: MauSac.nenNoi,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.account_balance_wallet_rounded,
+                              color: MauSac.chuDao, size: 20),
+                        ),
+                        title: Row(
+                          children: [
+                            const Expanded(
+                              child: Text(
+                                'Tài khoản & Ví liên kết',
+                                style: TextStyle(
+                                  color: MauSac.chuChinh,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            Row(
+                              children: [
+                                _taoChipVi('VCB'),
+                                const SizedBox(width: 4),
+                                _taoChipVi('TCB'),
+                                const SizedBox(width: 4),
+                                _taoChipVi('MoMo'),
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: MauSac.chuDao.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Text(
+                                    '3 nguồn',
+                                    style: TextStyle(
+                                      color: MauSac.chuDao,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        trailing: const Icon(Icons.chevron_right_rounded, color: MauSac.chuPhu, size: 20),
+                      ),
+
+                      const Divider(color: MauSac.duongVienNhat, height: 1),
+
+                      // Bật/tắt Báo cáo tuần qua Gmail
+                      ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: MauSac.nenNoi,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.mark_email_unread_rounded,
+                              color: MauSac.phu, size: 20),
+                        ),
+                        title: const Text(
+                          'Báo cáo tuần qua Gmail',
+                          style: TextStyle(
+                            color: MauSac.chuChinh,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        subtitle: const Text(
+                          'Gửi bảng phân tích tự động mỗi Chủ Nhật',
+                          style: TextStyle(color: MauSac.chuPhu, fontSize: 11),
+                        ),
+                        trailing: Switch(
+                          value: _baoCaoGmail,
+                          activeTrackColor: MauSac.chuDao,
+                          onChanged: (val) => setState(() => _baoCaoGmail = val),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: KhoangCach.lon),
+
+                // SECTION 5: BẢO MẬT & HỆ THỐNG
+                const Text(
+                  'BẢO MẬT & HỆ THỐNG',
+                  style: TextStyle(
+                    color: MauSac.chuPhu,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+
+                const SizedBox(height: KhoangCach.nho),
+
+                Container(
+                  decoration: BoxDecoration(
+                    color: MauSac.nenThe,
+                    borderRadius: BoGoc.borderVua,
+                    border: Border.all(color: MauSac.duongVienNhat),
+                  ),
+                  child: Column(
+                    children: [
+                      // Bật/tắt Nhắc nhở ghi chép giao dịch
+                      ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: MauSac.nenNoi,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.notifications_active_rounded,
+                              color: MauSac.canhBao, size: 20),
+                        ),
+                        title: const Text(
+                          'Nhắc nhở ghi chép',
+                          style: TextStyle(
+                            color: MauSac.chuChinh,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        subtitle: const Text(
+                          'Thông báo mỗi 21:30 hàng ngày',
+                          style: TextStyle(color: MauSac.chuPhu, fontSize: 11),
+                        ),
+                        trailing: Switch(
+                          value: _nhacNhoGhiChep,
+                          activeTrackColor: MauSac.chuDao,
+                          onChanged: (val) => setState(() => _nhacNhoGhiChep = val),
+                        ),
+                      ),
+
+                      const Divider(color: MauSac.duongVienNhat, height: 1),
+
+                      // Bật/tắt Đăng nhập bằng vân tay
+                      ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: MauSac.nenNoi,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.fingerprint_rounded,
+                              color: MauSac.chuDao, size: 20),
+                        ),
+                        title: const Text(
+                          'Đăng nhập bằng vân tay',
+                          style: TextStyle(
+                            color: MauSac.chuChinh,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        subtitle: const Text(
+                          'Xác thực sinh trắc học nhanh và an toàn',
+                          style: TextStyle(color: MauSac.chuPhu, fontSize: 11),
+                        ),
+                        trailing: Switch(
+                          value: _dangNhapVanTay,
+                          activeTrackColor: MauSac.chuDao,
+                          onChanged: (val) => _thayDoiTrangThaiVanTay(val),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: KhoangCach.lon),
+
+                // SECTION 6: NÚT ĐĂNG XUẤT TÀI KHOẢN
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: _xuLyDangXuat,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: MauSac.nenThe,
+                      foregroundColor: MauSac.chiTieu,
+                      elevation: 0,
+                      side: const BorderSide(color: MauSac.duongVienNhat),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BoGoc.borderVua,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(Icons.logout_rounded, color: MauSac.chiTieu, size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'Đăng xuất tài khoản Google',
+                          style: TextStyle(
+                            color: MauSac.chiTieu,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: KhoangCach.lon),
+
+                // SECTION 7: FOOTER THÔNG TIN ỨNG DỤNG BẢO MẬT
+                Center(
+                  child: Column(
+                    children: const [
+                      Text(
+                        'Capy Money Studio Mobile Edition • v2.4.0 (Build 412)',
+                        style: TextStyle(
+                          color: MauSac.chuDao,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Bảo mật mã hóa 256–bit AES chuẩn tổ chức tài chính',
+                        style: TextStyle(
+                          color: MauSac.chuMo,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: KhoangCach.lon),
+              ],
+            ),
           ),
         ),
       ),
-    ),
     );
   }
 
+  /// Hàm hỗ trợ tạo Chip nhãn vi gọn nhỏ
   Widget _taoChipVi(String ten) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),

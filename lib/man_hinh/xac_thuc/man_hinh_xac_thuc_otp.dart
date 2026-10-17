@@ -8,9 +8,13 @@ import '../../giao_dien/chuan_thiet_ke/khoang_cach.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
 import 'man_hinh_dang_nhap.dart';
 
-/// Màn hình Xác thực OTP & Đổi mật khẩu mới (Capy Money Reset Password)
+/// Màn hình Nhập Mã Xác Thực OTP & Đặt Mật Khẩu Mới (Capy Money Reset Password)
+/// 
+/// Nhận 6 ô nhập mã OTP gửi về Gmail, đồng thời cho phép nhập mật khẩu mới và xác thực trực tiếp qua Supabase Auth.
 class ManHinhXacThucOtp extends StatefulWidget {
+  /// Địa chỉ Gmail nhận mã xác thực OTP
   final String email;
+
   const ManHinhXacThucOtp({super.key, required this.email});
 
   @override
@@ -18,18 +22,32 @@ class ManHinhXacThucOtp extends StatefulWidget {
 }
 
 class _ManHinhXacThucOtpState extends State<ManHinhXacThucOtp> {
+  /// Danh sách 6 controller điều khiển 6 ô nhập chữ số mã OTP
   final List<TextEditingController> _otpControllers =
       List.generate(6, (_) => TextEditingController());
+
+  /// Danh sách 6 focus node tự động chuyển ô nhập khi người dùng gõ
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
 
+  /// Bộ điều khiển ô nhập Mật khẩu mới
   final _matKhauMoiController = TextEditingController();
+
+  /// Bộ điều khiển ô nhập lại Mật khẩu xác nhận
   final _xacNhanMatKhauController = TextEditingController();
 
+  /// Ẩn/hiện mật khẩu mới
   bool _anMatKhauMoi = true;
+
+  /// Ẩn/hiện mật khẩu xác nhận
   bool _anXacNhanMatKhau = true;
+
+  /// Trạng thái đang gửi yêu cầu xác thực OTP
   bool _dangXuLy = false;
 
+  /// Thời gian đếm ngược 60 giây để cho phép bấm nút "Gửi lại mã OTP"
   int _demNguoc = 60;
+
+  /// Timer đếm ngược hàng giây
   Timer? _boDemTimer;
 
   @override
@@ -38,7 +56,7 @@ class _ManHinhXacThucOtpState extends State<ManHinhXacThucOtp> {
     _batDauDemNguoc();
   }
 
-  /// Bắt đầu đếm ngược 60 giây gửi lại mã OTP
+  /// Khởi chạy bộ đếm ngược 60 giây gửi lại mã OTP
   void _batDauDemNguoc() {
     setState(() => _demNguoc = 60);
     _boDemTimer?.cancel();
@@ -52,7 +70,7 @@ class _ManHinhXacThucOtpState extends State<ManHinhXacThucOtp> {
     });
   }
 
-  /// Thao tác gửi lại mã OTP về Gmail
+  /// Thao tác yêu cầu Supabase Auth gửi lại mã OTP mới về Gmail
   Future<void> _guiLaiMaOtp() async {
     if (_demNguoc > 0) return;
 
@@ -74,27 +92,32 @@ class _ManHinhXacThucOtpState extends State<ManHinhXacThucOtp> {
     }
   }
 
+  /// Kiểm tra mật khẩu đạt độ dài an toàn tối thiểu 8 ký tự
   bool get _du8KyTu => _matKhauMoiController.text.length >= 8;
 
+  /// Kiểm tra hai mật khẩu có trùng khớp không
   bool get _trungKhop =>
       _matKhauMoiController.text.isNotEmpty &&
       _matKhauMoiController.text == _xacNhanMatKhauController.text;
 
-  /// Thao tác xác thực OTP và đổi mật khẩu mới
+  /// Thao tác xác thực mã OTP và cập nhật mật khẩu mới lên Supabase Auth
   Future<void> _xuLyDoiMatKhau() async {
     final maOtp = _otpControllers.map((c) => c.text.trim()).join();
     final matKhauMoi = _matKhauMoiController.text.trim();
 
+    // 1. Validation mã OTP 6 số
     if (maOtp.length < 6) {
       _hienThongBao('Vui lòng nhập đủ 6 chữ số mã OTP');
       return;
     }
 
+    // 2. Validation độ dài mật khẩu mới
     if (!_du8KyTu) {
       _hienThongBao('Mật khẩu mới phải chứa ít nhất 8 ký tự');
       return;
     }
 
+    // 3. Validation trùng khớp mật khẩu
     if (!_trungKhop) {
       _hienThongBao('Mật khẩu xác nhận không trùng khớp');
       return;
@@ -103,13 +126,14 @@ class _ManHinhXacThucOtpState extends State<ManHinhXacThucOtp> {
     setState(() => _dangXuLy = true);
 
     try {
+      // Gọi Supabase Auth xác thực OTP recovery và cập nhật mật khẩu mới
       await DichVuSupabase.capNhatMatKhauMoi(
         email: widget.email,
         maOtp: maOtp,
         matKhauMoi: matKhauMoi,
       );
 
-      // Xóa mật khẩu cũ trong SharedPreferences
+      // Xóa thông tin mật khẩu cũ lưu tạm trong SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('capymoney_ghi_nho_mat_khau');
       await prefs.setBool('capymoney_ghi_nho_trang_thai', false);
@@ -124,6 +148,7 @@ class _ManHinhXacThucOtpState extends State<ManHinhXacThucOtp> {
         ),
       );
 
+      // Điều hướng về Màn hình Đăng nhập
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const ManHinhDangNhap()),
         (route) => false,
@@ -139,6 +164,7 @@ class _ManHinhXacThucOtpState extends State<ManHinhXacThucOtp> {
     }
   }
 
+  /// Hàm hỗ trợ hiển thị SnackBar thông báo ngắn
   void _hienThongBao(String noiDung) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -192,7 +218,7 @@ class _ManHinhXacThucOtpState extends State<ManHinhXacThucOtp> {
             children: [
               const SizedBox(height: KhoangCach.vua),
 
-              // Icon khiên bảo mật phát sáng
+              // SECTION 1: BIỂU TƯỢNG KHIÊN BẢO MẬT
               Container(
                 width: 80,
                 height: 80,
@@ -251,7 +277,7 @@ class _ManHinhXacThucOtpState extends State<ManHinhXacThucOtp> {
 
               const SizedBox(height: KhoangCach.lon),
 
-              // Card Nhập OTP & Password
+              // SECTION 2: CARD CONTAINER CHỨA Ô NHẬP OTP 6 CHỮ SỐ VÀ Ô MẬT KHẨU MỚI
               Container(
                 padding: KhoangCach.lToanBoLon,
                 decoration: BoxDecoration(
@@ -287,7 +313,7 @@ class _ManHinhXacThucOtpState extends State<ManHinhXacThucOtp> {
 
                     const SizedBox(height: 12),
 
-                    // 6 Ô Nhập OTP với tự động chuyển focus
+                    // 6 Ô Nhập OTP với tự động chuyển focus thông minh
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: List.generate(6, (index) {
@@ -337,7 +363,7 @@ class _ManHinhXacThucOtpState extends State<ManHinhXacThucOtp> {
 
                     const SizedBox(height: 12),
 
-                    // Time đếm ngược & Gửi lại mã OTP
+                    // Đồng hồ đếm ngược & Nút yêu cầu gửi lại mã OTP
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -378,7 +404,7 @@ class _ManHinhXacThucOtpState extends State<ManHinhXacThucOtp> {
 
                     const SizedBox(height: KhoangCach.vua),
 
-                    // Mật khẩu mới
+                    // Ô nhập Mật khẩu mới
                     const Text(
                       'Mật khẩu mới',
                       style: TextStyle(color: MauSac.chuChinh, fontSize: 13, fontWeight: FontWeight.w600),
@@ -421,7 +447,7 @@ class _ManHinhXacThucOtpState extends State<ManHinhXacThucOtp> {
 
                     const SizedBox(height: KhoangCach.phatChuan),
 
-                    // Xác nhận mật khẩu
+                    // Ô nhập lại Mật khẩu xác nhận
                     const Text(
                       'Xác nhận mật khẩu',
                       style: TextStyle(color: MauSac.chuChinh, fontSize: 13, fontWeight: FontWeight.w600),
@@ -464,7 +490,7 @@ class _ManHinhXacThucOtpState extends State<ManHinhXacThucOtp> {
 
                     const SizedBox(height: KhoangCach.vua),
 
-                    // 2 Dòng kiểm tra điều kiện thời gian thực
+                    // SECTION 3: BẢNG KIỂM TRA ĐIỀU KIỆN MẬT KHẨU MỚI REALTIME
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -516,7 +542,7 @@ class _ManHinhXacThucOtpState extends State<ManHinhXacThucOtp> {
 
                     const SizedBox(height: KhoangCach.lon),
 
-                    // Nút CTA Xác nhận & Đổi mật khẩu
+                    // SECTION 4: NÚT CTA XÁC NHẬN VÀ ĐỔI MẬT KHẨU
                     SizedBox(
                       width: double.infinity,
                       height: 52,
@@ -562,7 +588,7 @@ class _ManHinhXacThucOtpState extends State<ManHinhXacThucOtp> {
 
               const SizedBox(height: KhoangCach.lon),
 
-              // Quay về Đăng nhập
+              // SECTION 5: LINK QUAY VỀ MÀN HÌNH ĐĂNG NHẬP
               GestureDetector(
                 onTap: () {
                   Navigator.of(context).pushAndRemoveUntil(

@@ -6,7 +6,9 @@ import '../../giao_dien/chuan_thiet_ke/khoang_cach.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
 import 'man_hinh_xac_thuc_otp.dart';
 
-/// Màn hình Quên mật khẩu qua Gmail (Capy Money Forgot Password)
+/// Màn hình Yêu Cầu Khôi Phục Mật Khẩu Qua Gmail (Capy Money Forgot Password)
+/// 
+/// Cho phép người dùng nhập Gmail đã đăng ký để gửi mã xác thực OTP thiết lập mật khẩu mới.
 class ManHinhQuenMatKhau extends StatefulWidget {
   const ManHinhQuenMatKhau({super.key});
 
@@ -15,23 +17,27 @@ class ManHinhQuenMatKhau extends StatefulWidget {
 }
 
 class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
+  /// Bộ điều khiển nhập Gmail khôi phục
   final _emailController = TextEditingController();
+
+  /// Trạng thái đang gửi yêu cầu
   bool _dangXuLy = false;
 
-  /// Regex kiểm tra Email chuẩn
+  /// Biểu thức chính quy (Regex) kiểm tra Email chuẩn
   static final RegExp _emailRegex =
       RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
 
+  /// Thao tác kiểm tra Email và gửi mã xác thực OTP khôi phục mật khẩu
   Future<void> _guiMaOtp() async {
     final email = _emailController.text.trim();
 
-    // 1. Kiểm tra không để trống
+    // 1. Validation không để trống
     if (email.isEmpty) {
       _hienThongBao('Vui lòng nhập địa chỉ Gmail khôi phục');
       return;
     }
 
-    // 2. Kiểm tra định dạng Email
+    // 2. Validation định dạng Email
     if (!_emailRegex.hasMatch(email)) {
       _hienThongBao('Địa chỉ Gmail không đúng định dạng (ví dụ: email@gmail.com)');
       return;
@@ -40,7 +46,7 @@ class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
     setState(() => _dangXuLy = true);
 
     try {
-      // 3. Gửi yêu cầu đặt lại mật khẩu trực tiếp từ Supabase Auth
+      // 3. Gửi yêu cầu resetPasswordForEmail qua Supabase Auth API
       await DichVuSupabase.guiMaKhoiPhuc(email);
 
       if (!mounted) return;
@@ -53,7 +59,7 @@ class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
         ),
       );
 
-      // 4. Chuyển sang Màn hình nhập mã OTP
+      // 4. Chuyển tiếp sang Màn hình nhập mã xác thực OTP
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -81,6 +87,7 @@ class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
     }
   }
 
+  /// Hàm hỗ trợ hiển thị SnackBar thông báo ngắn
   void _hienThongBao(String noiDung) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -126,7 +133,7 @@ class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
             children: [
               const SizedBox(height: KhoangCach.lon),
 
-              // Icon vòng tròn khôi phục mật khẩu phát sáng
+              // SECTION 1: BIỂU TƯỢNG VÒNG TRÒN KHÔI PHỤC PHÁT SÁNG
               Container(
                 width: 90,
                 height: 90,
@@ -171,7 +178,7 @@ class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
 
               const SizedBox(height: KhoangCach.sieuLon),
 
-              // Form Nhập Gmail
+              // SECTION 2: FORM NHẬP GMAIL XÁC THỰC
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -233,7 +240,7 @@ class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
 
               const SizedBox(height: KhoangCach.vua),
 
-              // Note thông báo thời gian 5 phút
+              // SECTION 3: THÔNG BÁO LƯU Ý THỜI GIAN HIỆU LỰC MÃ OTP
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
@@ -254,7 +261,7 @@ class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
 
               const SizedBox(height: KhoangCach.lon),
 
-              // Nút Gửi mã xác thực
+              // SECTION 4: NÚT CTA GỬI MÃ XÁC THỰC
               SizedBox(
                 width: double.infinity,
                 height: 52,
@@ -297,7 +304,7 @@ class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
 
               const SizedBox(height: KhoangCach.lon),
 
-              // Card Mẹo nhận mã & Hỗ trợ
+              // SECTION 5: CARD MẸO NHẬN MÃ & HƯỚNG DẪN HỖ TRỢ
               Container(
                 padding: KhoangCach.lToanBoChuan,
                 decoration: BoxDecoration(
@@ -354,7 +361,7 @@ class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
 
               const SizedBox(height: KhoangCach.sieuLon),
 
-              // Link quay về Đăng nhập
+              // SECTION 6: LINK CHUYỂN SANG ĐĂNG NHẬP
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

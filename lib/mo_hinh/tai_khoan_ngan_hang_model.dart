@@ -1,13 +1,32 @@
-/// Mô hình tài khoản & ví ngân hàng liên kết
+/// Mô hình dữ liệu Tài khoản Ngân hàng & Ví Điện tử (Bank Account & Wallet Model)
+/// 
+/// Đại diện cho các nguồn tiền/phương thức nhận tiền liên kết trong bảng `tai_khoan_ngan_hang`.
 class TaiKhoanNganHangModel {
+  /// Mã định danh nguồn tiền (UUID)
   final String id;
+
+  /// Mã người dụng sở hữu
   final String nguoiDungId;
+
+  /// Tên ngân hàng hoặc ví (Ví dụ: MB Bank, Vietcombank, MoMo)
   final String tenNganHang;
+
+  /// Số tài khoản hoặc số điện thoại ví
   final String soTaiKhoan;
+
+  /// Tên chủ tài khoản (in hoa không dấu)
   final String tenChuTaiKhoan;
-  final String loaiTaiKhoan; // ngan_hang, vi_dien_tu, tien_mat
+
+  /// Phân loại nguồn tiền: `ngan_hang`, `vi_dien_tu`, `tien_mat`
+  final String loaiTaiKhoan;
+
+  /// Số dư khả dụng hiện tại
   final double soDu;
+
+  /// Đánh dấu đây là nguồn nhận tiền mặc định chính
   final bool laNhanChinh;
+
+  /// Thời điểm liên kết tài khoản
   final DateTime? taoLuc;
 
   TaiKhoanNganHangModel({
@@ -22,6 +41,7 @@ class TaiKhoanNganHangModel {
     this.taoLuc,
   });
 
+  /// Khởi tạo đối tượng TaiKhoanNganHangModel từ bản ghi JSON của Supabase
   factory TaiKhoanNganHangModel.fromJson(Map<String, dynamic> json) {
     return TaiKhoanNganHangModel(
       id: json['id'] as String,
@@ -36,6 +56,7 @@ class TaiKhoanNganHangModel {
     );
   }
 
+  /// Chuyển đổi đối tượng sang định dạng JSON để lưu vào Supabase
   Map<String, dynamic> toJson() {
     return {
       'id': id,

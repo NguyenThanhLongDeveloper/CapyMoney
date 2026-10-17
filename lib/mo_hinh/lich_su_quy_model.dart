@@ -1,13 +1,32 @@
-/// Mô hình lịch sử thao tác nạp / rút quỹ tiết kiệm
+/// Mô hình dữ liệu Nhật ký Nạp / Rút Quỹ Tiết Kiệm (Savings Fund History Model)
+/// 
+/// Lưu vết chi tiết các thao tác nạp tiền hoặc rút tiền từ Quỹ trong bảng `lich_su_quy`.
 class LichSuQuyModel {
+  /// Mã định danh lịch sử (UUID)
   final String id;
+
+  /// Mã quỹ tiết kiệm liên quan
   final String quyId;
+
+  /// Mã người dùng thực hiện
   final String nguoiDungId;
+
+  /// Nguồn tiền liên quan (Tài khoản ngân hàng / Ví)
   final String? taiKhoanId;
-  final String loaiThaoTac; // nap_tien hoac rut_tien
+
+  /// Loai thao tác: `nap_tien` hoặc `rut_tien`
+  final String loaiThaoTac;
+
+  /// Số tiền biến động
   final double soTien;
+
+  /// Diễn giải / Lý do nạp rút
   final String? lyDo;
+
+  /// Mã tham chiếu ngân hàng
   final String? maThamChieu;
+
+  /// Thời điểm nạp rút
   final DateTime? taoLuc;
 
   LichSuQuyModel({
@@ -22,6 +41,7 @@ class LichSuQuyModel {
     this.taoLuc,
   });
 
+  /// Khởi tạo đối tượng LichSuQuyModel từ bản ghi JSON của Supabase
   factory LichSuQuyModel.fromJson(Map<String, dynamic> json) {
     return LichSuQuyModel(
       id: json['id'] as String,
@@ -36,6 +56,7 @@ class LichSuQuyModel {
     );
   }
 
+  /// Chuyển đổi đối tượng sang định dạng JSON để ghi vào Supabase
   Map<String, dynamic> toJson() {
     return {
       'id': id,

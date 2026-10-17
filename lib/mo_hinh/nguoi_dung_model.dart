@@ -1,13 +1,32 @@
-/// Mô hình thông tin người dùng trong CapyMoney
+/// Mô hình dữ liệu Tài khoản Người dùng (User Profile Model)
+/// 
+/// Đại diện cho thông tin định danh cá nhân và cấu hình tùy chỉnh của người dùng trong bảng `nguoi_dung`.
 class NguoiDungModel {
+  /// Mã định danh duy nhất (UUID từ Supabase Auth)
   final String id;
+
+  /// Họ và tên đầy đủ
   final String hoTen;
+
+  /// Địa chỉ Gmail liên kết
   final String email;
+
+  /// Số điện thoại (10 chữ số)
   final String? soDienThoai;
+
+  /// Đường dẫn URL ảnh đại diện trên Supabase Storage
   final String? anhDaiDien;
+
+  /// Cấu hình bật/tắt nhận báo cáo tài chính tuần qua Gmail
   final bool baoCaoGmail;
+
+  /// Cấu hình bật/tắt nhắc nhở ghi chép giao dịch hàng ngày
   final bool nhacNhoGhiChep;
+
+  /// Thời gian phát thông báo nhắc nhở (Mặc định '21:30')
   final String thoiGianNhacNho;
+
+  /// Thời điểm khởi tạo tài khoản
   final DateTime? taoLuc;
 
   NguoiDungModel({
@@ -22,6 +41,7 @@ class NguoiDungModel {
     this.taoLuc,
   });
 
+  /// Khởi tạo đối tượng NguoiDungModel từ bản ghi JSON của Supabase
   factory NguoiDungModel.fromJson(Map<String, dynamic> json) {
     return NguoiDungModel(
       id: json['id'] as String,
@@ -36,6 +56,7 @@ class NguoiDungModel {
     );
   }
 
+  /// Chuyển đổi đối tượng sang định dạng JSON để ghi vào Supabase
   Map<String, dynamic> toJson() {
     return {
       'id': id,
