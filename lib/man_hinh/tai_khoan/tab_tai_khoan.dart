@@ -10,6 +10,7 @@ import '../../giao_dien/chuan_thiet_ke/bo_goc.dart';
 import '../../giao_dien/chuan_thiet_ke/khoang_cach.dart';
 import '../../giao_dien/chuan_thiet_ke/hinh_anh.dart';
 import '../../giao_dien/chuan_thiet_ke/bieu_tuong.dart';
+import '../../giao_dien/chuan_thiet_ke/dap_ung.dart';
 import '../../giao_dien/bottom_sheet/bs_lien_ket_tai_khoan.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
 import '../xac_thuc/man_hinh_dang_nhap.dart';
@@ -374,7 +375,8 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
     return Scaffold(
       backgroundColor: MauSac.nenChinh,
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: DapUng.bocKhungNoiDung(
+          child: SingleChildScrollView(
           padding: KhoangCach.lNgangLon,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1001,6 +1003,7 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
           ),
         ),
       ),
+    ),
     );
   }
 

@@ -8,6 +8,7 @@ import '../../giao_dien/chuan_thiet_ke/bo_goc.dart';
 import '../../giao_dien/chuan_thiet_ke/khoang_cach.dart';
 import '../../giao_dien/chuan_thiet_ke/bieu_tuong.dart';
 import '../../giao_dien/chuan_thiet_ke/hinh_anh.dart';
+import '../../giao_dien/chuan_thiet_ke/dap_ung.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
 import 'man_hinh_dang_ky.dart';
 import 'man_hinh_quen_mat_khau.dart';
@@ -249,7 +250,8 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
     return Scaffold(
       backgroundColor: MauSac.nenChinh,
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: DapUng.bocKhungForm(
+          child: SingleChildScrollView(
           padding: KhoangCach.lNgangLon,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -811,6 +813,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
           ),
         ),
       ),
+    ),
     );
   }
 }

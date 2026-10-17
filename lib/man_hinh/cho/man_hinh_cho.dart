@@ -7,6 +7,7 @@ import '../../giao_dien/chuan_thiet_ke/khoang_cach.dart';
 import '../../giao_dien/chuan_thiet_ke/kieu_chu.dart';
 import '../../giao_dien/chuan_thiet_ke/bieu_tuong.dart';
 import '../../giao_dien/chuan_thiet_ke/hinh_anh.dart';
+import '../../giao_dien/chuan_thiet_ke/dap_ung.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
 import '../xac_thuc/man_hinh_dang_nhap.dart';
 import '../dieu_huong/man_hinh_chinh_tab.dart';
@@ -82,10 +83,11 @@ class _ManHinhChoState extends State<ManHinhCho> with SingleTickerProviderStateM
     return Scaffold(
       backgroundColor: MauSac.nenChinh,
       body: SafeArea(
-        child: Padding(
-          padding: KhoangCach.lNgangLon,
-          child: Column(
-            children: [
+        child: DapUng.bocKhungForm(
+          child: Padding(
+            padding: KhoangCach.lNgangLon,
+            child: Column(
+              children: [
               const SizedBox(height: KhoangCach.phatChuan),
 
               // Top Badges
@@ -370,6 +372,7 @@ class _ManHinhChoState extends State<ManHinhCho> with SingleTickerProviderStateM
           ),
         ),
       ),
+    ),
     );
   }
 }

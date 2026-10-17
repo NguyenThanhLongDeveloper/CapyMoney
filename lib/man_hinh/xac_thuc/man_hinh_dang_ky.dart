@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../giao_dien/chuan_thiet_ke/mau_sac.dart';
 import '../../giao_dien/chuan_thiet_ke/bo_goc.dart';
 import '../../giao_dien/chuan_thiet_ke/khoang_cach.dart';
+import '../../giao_dien/chuan_thiet_ke/dap_ung.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
 import 'man_hinh_dang_nhap.dart';
 
@@ -349,7 +350,8 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
     return Scaffold(
       backgroundColor: MauSac.nenChinh,
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: DapUng.bocKhungForm(
+          child: SingleChildScrollView(
           padding: KhoangCach.lNgangLon,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -647,6 +649,7 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
           ),
         ),
       ),
+    ),
     );
   }
 }
