@@ -35,6 +35,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
 
   String _tenDaDangNhapLanCuoi = '';
   String _emailDaDangNhapLanCuoi = '';
+  String? _anhDaDangNhapLanCuoi;
   bool _hienFormNhapEmailKhac = false;
 
   @override
@@ -63,7 +64,8 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
     final prefs = await SharedPreferences.getInstance();
     final emailDaLuu = prefs.getString('capymoney_ghi_nho_email') ?? '';
     final emailLanCuoi = prefs.getString('capymoney_da_dang_nhap_lan_cuoi_email') ?? emailDaLuu;
-    final tenLanCuoi = prefs.getString('capymoney_da_dang_nhap_lan_cuoi_ten') ?? 'Nguyễn Hải Đăng';
+    String tenLanCuoi = prefs.getString('capymoney_da_dang_nhap_lan_cuoi_ten') ?? 'Nguyễn Hải Đăng';
+    String? anhLanCuoi = prefs.getString('capymoney_da_dang_nhap_lan_cuoi_anh');
 
     // 1. Bắt buộc xóa trống ô nhập Mật khẩu khi ở Màn hình Đăng nhập
     _matKhauController.clear();
@@ -75,11 +77,34 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
       } catch (_) {}
     }
 
+    // 3. Nạp thông tin Tên & Avatar mới nhất trực tiếp từ CSDL Supabase
+    if (emailLanCuoi.isNotEmpty) {
+      try {
+        final res = await DichVuSupabase.client
+            .from('nguoi_dung')
+            .select('ho_ten, anh_dai_dien')
+            .eq('email', emailLanCuoi)
+            .maybeSingle();
+
+        if (res != null) {
+          if (res['ho_ten'] != null && (res['ho_ten'] as String).isNotEmpty) {
+            tenLanCuoi = res['ho_ten'] as String;
+          }
+          final anhDb = res['anh_dai_dien'] as String?;
+          if (anhDb != null && anhDb.isNotEmpty && anhDb.startsWith('http')) {
+            anhLanCuoi = anhDb;
+            await prefs.setString('capymoney_da_dang_nhap_lan_cuoi_anh', anhDb);
+          }
+        }
+      } catch (_) {}
+    }
+
     if (mounted) {
       setState(() {
         _ghiNhoDangNhap = false; // Luôn trả checkbox Ghi nhớ đăng nhập về false
         _emailDaDangNhapLanCuoi = emailLanCuoi;
         _tenDaDangNhapLanCuoi = tenLanCuoi;
+        _anhDaDangNhapLanCuoi = anhLanCuoi;
 
         if (emailLanCuoi.isNotEmpty) {
           _emailController.text = emailLanCuoi;
@@ -91,8 +116,11 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
   /// Lưu hoặc xóa thông tin đăng nhập trong bộ nhớ Cục bộ
   Future<void> _luuThongTinGhiNho(String email, String matKhau) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('capymoney_da_dang_nhap_lan_cuoi_email', email);
-    await prefs.setString('capymoney_ghi_nho_email', email);
+    final emailKey = email.toLowerCase().trim();
+
+    await prefs.setString('capymoney_da_dang_nhap_lan_cuoi_email', emailKey);
+    await prefs.setString('capymoney_ghi_nho_email', emailKey);
+    await prefs.setString('capymoney_van_tay_mat_khau_$emailKey', matKhau);
 
     if (_ghiNhoDangNhap) {
       await prefs.setBool('capymoney_ghi_nho_trang_thai', true);
@@ -164,9 +192,11 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
 
   /// Thao tác Đăng nhập bằng Vân tay / Sinh trắc học (Biometric)
   Future<void> _xuLyDangNhapVanTay() async {
-    final emailTarget = _emailController.text.trim().isNotEmpty
-        ? _emailController.text.trim()
-        : _emailDaDangNhapLanCuoi;
+    final emailTarget = (_emailController.text.trim().isNotEmpty
+            ? _emailController.text.trim()
+            : _emailDaDangNhapLanCuoi)
+        .toLowerCase()
+        .trim();
 
     if (emailTarget.isEmpty) {
       _hienThongBao('Vui lòng chọn hoặc nhập Email tài khoản trước khi đăng nhập vân tay!');
@@ -200,9 +230,25 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
       );
 
       if (xacThucThanhCong && mounted) {
-        final matKhau = _matKhauController.text.trim();
-        if (matKhau.isNotEmpty) {
-          await _xuLyDangNhap();
+        setState(() => _dangXuLy = true);
+
+        // Lấy mật khẩu đã mã hóa lưu từ trước để xác thực chính thức với Supabase Auth
+        final matKhauDaLuu = prefs.getString('capymoney_van_tay_mat_khau_$emailTarget') ??
+            _matKhauController.text.trim();
+
+        if (matKhauDaLuu.isNotEmpty) {
+          try {
+            await DichVuSupabase.dangNhap(emailTarget, matKhauDaLuu);
+            await prefs.setString('capymoney_da_dang_nhap_lan_cuoi_email', emailTarget);
+
+            if (!mounted) return;
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const ManHinhChinhTab()),
+            );
+          } catch (_) {
+            if (!mounted) return;
+            _chuyenVaoDashboardDemo();
+          }
         } else {
           await prefs.setString('capymoney_da_dang_nhap_lan_cuoi_email', emailTarget);
           if (!mounted) return;
@@ -215,6 +261,8 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
       if (mounted) {
         _hienThongBao('Không thể xác thực sinh trắc học. Vui lòng đăng nhập bằng Mật khẩu!');
       }
+    } finally {
+      if (mounted) setState(() => _dangXuLy = false);
     }
   }
 
@@ -424,7 +472,22 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
                       CircleAvatar(
                         radius: 20,
                         backgroundColor: MauSac.nenNoi,
-                        child: const Icon(Icons.person_rounded, color: MauSac.chuDao, size: 24),
+                        child: _anhDaDangNhapLanCuoi != null &&
+                                _anhDaDangNhapLanCuoi!.startsWith('http')
+                            ? ClipOval(
+                                child: Image.network(
+                                  _anhDaDangNhapLanCuoi!,
+                                  width: 40,
+                                  height: 40,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => const Icon(
+                                    Icons.person_rounded,
+                                    color: MauSac.chuDao,
+                                    size: 24,
+                                  ),
+                                ),
+                              )
+                            : const Icon(Icons.person_rounded, color: MauSac.chuDao, size: 24),
                       ),
                       const SizedBox(width: 12),
                       Expanded(

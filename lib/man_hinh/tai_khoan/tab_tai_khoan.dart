@@ -78,8 +78,10 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
           if (res['so_dien_thoai'] != null && (res['so_dien_thoai'] as String).isNotEmpty) {
             sdtCurrent = res['so_dien_thoai'] as String;
           }
-          if (res['anh_dai_dien'] != null && (res['anh_dai_dien'] as String).isNotEmpty) {
-            anhPathCurrent = res['anh_dai_dien'] as String;
+          final anhDb = res['anh_dai_dien'] as String?;
+          if (anhDb != null && anhDb.isNotEmpty && anhDb.startsWith('http')) {
+            anhPathCurrent = anhDb;
+            await prefs.setString('capymoney_anh_dai_dien_$emailCurrent', anhDb);
           }
         }
       } catch (_) {}
@@ -160,26 +162,30 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
     final prefs = await SharedPreferences.getInstance();
     final user = DichVuSupabase.client.auth.currentUser;
 
+    // Hiển thị tạm thời trong khi chờ tải lên
     setState(() => _anhDaiDienPath = xFile.path);
-    await prefs.setString('capymoney_anh_dai_dien_$_email', xFile.path);
 
     if (user != null) {
       try {
-        // 1. Tải ảnh lên Supabase Storage Bucket 'avatars'
+        // 1. Tải ảnh lên Supabase Storage Bucket 'avatars' (tự động xóa ảnh cũ)
         final urlOnline = await DichVuSupabase.taiAnhDaiDienLenStorage(xFile, user.id);
-        final duongDanLuu = urlOnline ?? xFile.path;
 
         if (urlOnline != null && urlOnline.isNotEmpty) {
+          // 2. Cập nhật URL công khai online vào state và bộ nhớ máy
           setState(() => _anhDaiDienPath = urlOnline);
           await prefs.setString('capymoney_anh_dai_dien_$_email', urlOnline);
-        }
 
-        // 2. Cập nhật đường dẫn vào bảng nguoi_dung
-        await DichVuSupabase.client
-            .from('nguoi_dung')
-            .update({'anh_dai_dien': duongDanLuu})
-            .eq('id', user.id);
-      } catch (_) {}
+          // 3. Chỉ lưu URL HTTP công khai vào bảng nguoi_dung (đảm bảo hiển thị trên mọi thiết bị)
+          await DichVuSupabase.client
+              .from('nguoi_dung')
+              .update({'anh_dai_dien': urlOnline})
+              .eq('id', user.id);
+        }
+      } catch (e) {
+        debugPrint('Lỗi cập nhật ảnh đại diện: $e');
+      }
+    } else {
+      await prefs.setString('capymoney_anh_dai_dien_$_email', xFile.path);
     }
 
     if (!mounted) return;

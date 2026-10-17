@@ -55,7 +55,7 @@ class DichVuSupabase {
     required String matKhau,
     String? soDienThoai,
   }) async {
-    return await client.auth.signUp(
+    final response = await client.auth.signUp(
       email: email,
       password: matKhau,
       data: {
@@ -63,6 +63,22 @@ class DichVuSupabase {
         'so_dien_thoai': soDienThoai,
       },
     );
+
+    // Cập nhật số điện thoại và thông tin vào bảng nguoi_dung trong CSDL
+    if (response.user != null &&
+        response.user!.identities != null &&
+        response.user!.identities!.isNotEmpty) {
+      try {
+        await client.from('nguoi_dung').upsert({
+          'id': response.user!.id,
+          'ho_ten': hoTen,
+          'email': email,
+          'so_dien_thoai': soDienThoai,
+        });
+      } catch (_) {}
+    }
+
+    return response;
   }
 
   /// Quên mật khẩu - Gửi mã OTP khôi phục về Gmail
@@ -91,37 +107,43 @@ class DichVuSupabase {
     await client.auth.signOut();
   }
 
-  /// Tải ảnh đại diện lên Supabase Storage Bucket 'avatars' (Tự động xóa ảnh cũ)
+  /// Tải ảnh đại diện lên Supabase Storage Bucket 'avatars' (Đơn tên độc nhất bằng timestamp & xóa ảnh cũ)
   static Future<String?> taiAnhDaiDienLenStorage(XFile xFile, String userId) async {
+    if (userId.isEmpty) return null;
+
     try {
       final bytes = await xFile.readAsBytes();
-      final fileExt = xFile.name.contains('.') ? xFile.name.split('.').last : 'jpg';
-      final filePath = '$userId/avatar.$fileExt';
+      String fileExt = xFile.name.contains('.') ? xFile.name.split('.').last.toLowerCase() : 'jpeg';
+      if (fileExt == 'jpg') fileExt = 'jpeg';
+
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final filePath = '$userId/avatar_$timestamp.$fileExt';
+      final mimeType = 'image/$fileExt';
 
       // 1. Tự động tìm và xóa tất cả tệp ảnh cũ trong thư mục userId của bucket 'avatars'
       try {
         final danhSachFileCu = await client.storage.from('avatars').list(path: userId);
         if (danhSachFileCu.isNotEmpty) {
-          final danhSachCanXoa = danhSachFileCu.map((f) => '$userId/${f.name}').toList();
-          await client.storage.from('avatars').remove(danhSachCanXoa);
+          final filesToRemove = danhSachFileCu.map((f) => '$userId/${f.name}').toList();
+          await client.storage.from('avatars').remove(filesToRemove);
         }
       } catch (e) {
-        debugPrint('Lưu ý khi xóa file avatar cũ: $e');
+        debugPrint('Lưu ý khi dọn dẹp avatar cũ trên Supabase: $e');
       }
 
-      // 2. Upload file ảnh đại diện mới với thuộc tính upsert
+      // 2. Upload file ảnh đại diện mới với MIME type chuẩn
       await client.storage.from('avatars').uploadBinary(
         filePath,
         bytes,
         fileOptions: FileOptions(
           upsert: true,
-          contentType: 'image/$fileExt',
+          contentType: mimeType,
         ),
       );
 
-      // 3. Trả về URL công khai kèm timestamp để buộc làm mới cache
-      final rawPublicUrl = client.storage.from('avatars').getPublicUrl(filePath);
-      return '$rawPublicUrl?v=${DateTime.now().millisecondsSinceEpoch}';
+      // 3. Trả về URL công khai độc nhất không bị dính cache
+      final publicUrl = client.storage.from('avatars').getPublicUrl(filePath);
+      return publicUrl;
     } catch (e) {
       debugPrint('Lỗi upload Supabase Storage: $e');
       return null;
@@ -259,7 +281,7 @@ class DichVuSupabase {
         .update({'so_tien_hien_co': soDuMoi})
         .eq('id', quyId);
 
-    // 3. Ghĩ nhật ký lịch sử quỹ
+    // 3. Ghi nhật ký lịch sử quỹ
     final lichSu = LichSuQuyModel(
       id: '',
       quyId: quyId,
