@@ -47,6 +47,12 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
   /// Đường dẫn URL ảnh đại diện (Online hoặc Cục bộ)
   String? _anhDaiDienPath;
 
+  /// Thời điểm khởi tạo tài khoản của người dùng
+  DateTime? _thoiGianTaoTaiKhoan;
+
+  /// Số lượng ví / tài khoản ngân hàng liên kết
+  int _soLuongVi = 3;
+
   /// Thư viện chọn/chụp ảnh ImagePicker
   final ImagePicker _picker = ImagePicker();
 
@@ -54,6 +60,30 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
   void initState() {
     super.initState();
     _loadThongTinNguoiDung();
+  }
+
+  /// Tính toán thời gian gắn bó quy ra số ngày, tháng hoặc năm từ lúc tạo tài khoản đến thời điểm hiện tại
+  String _tinhThoiGianGanBo(DateTime? thoiGianTao) {
+    if (thoiGianTao == null) return '1 Ngày';
+    final now = DateTime.now();
+    final diff = now.difference(thoiGianTao);
+    final soNgay = diff.inDays;
+
+    if (soNgay < 1) {
+      return '1 Ngày';
+    } else if (soNgay < 30) {
+      return '$soNgay Ngày';
+    } else if (soNgay < 365) {
+      final soThang = (soNgay / 30).floor();
+      return '$soThang Tháng';
+    } else {
+      final soNam = (soNgay / 365).floor();
+      final soThangDu = ((soNgay % 365) / 30).floor();
+      if (soThangDu > 0) {
+        return '$soNam Năm $soThangDu Thg';
+      }
+      return '$soNam Năm';
+    }
   }
 
   /// Nạp thông tin người dùng từ Supabase CSDL, Auth & SharedPreferences
@@ -77,6 +107,9 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
 
     String? anhPathCurrent = prefs.getString('capymoney_anh_dai_dien_$emailCurrent');
 
+    DateTime? taoLucAcc = user?.createdAt != null ? DateTime.tryParse(user!.createdAt) : null;
+    int soViCount = 3;
+
     // Ưu tiên đọc thông tin mới nhất trực tiếp từ Service CSDL Supabase
     if (user != null) {
       try {
@@ -90,6 +123,15 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
             anhPathCurrent = ndModel.anhDaiDien;
             await prefs.setString('capymoney_anh_dai_dien_$emailCurrent', ndModel.anhDaiDien!);
           }
+          if (ndModel.taoLuc != null) {
+            taoLucAcc = ndModel.taoLuc;
+          }
+        }
+
+        // Lấy số lượng ví liên kết từ Service CSDL
+        final listVi = await DichVuSupabase.layDanhSachTaiKhoan();
+        if (listVi.isNotEmpty) {
+          soViCount = listVi.length;
         }
       } catch (_) {}
     }
@@ -110,6 +152,8 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
         _soDienThoai = sdtCurrent;
         _anhDaiDienPath = anhPathCurrent;
         _dangNhapVanTay = trangThaiVanTay;
+        _thoiGianTaoTaiKhoan = taoLucAcc;
+        _soLuongVi = soViCount;
       });
     }
   }
@@ -665,7 +709,7 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
 
                 const SizedBox(height: KhoangCach.phatChuan),
 
-                // SECTION 3: CỤM 2 THẺ THỐNG KÊ VÍ & THỜI GIAN
+                // SECTION 3: CỤM 2 THẺ THỐNG KÊ VÍ & THỜI GIAN GẮN BÓ DỰA TRÊN NGÀY TẠO TÀI KHOẢN
                 Row(
                   children: [
                     Expanded(
@@ -689,9 +733,9 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
                                   color: MauSac.chuDao, size: 18),
                             ),
                             const SizedBox(height: 10),
-                            const Text(
-                              '3 Ví',
-                              style: TextStyle(
+                            Text(
+                              '$_soLuongVi Ví',
+                              style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: MauSac.chuChinh,
@@ -728,9 +772,9 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
                                   color: MauSac.phu, size: 18),
                             ),
                             const SizedBox(height: 10),
-                            const Text(
-                              '12 Thg',
-                              style: TextStyle(
+                            Text(
+                              _tinhThoiGianGanBo(_thoiGianTaoTaiKhoan),
+                              style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: MauSac.chuChinh,
