@@ -57,7 +57,7 @@ class _ManHinhChoState extends State<ManHinhCho> with SingleTickerProviderStateM
     final prefs = await SharedPreferences.getInstance();
     // Đọc cờ lưu trạng thái ghi nhớ từ bộ nhớ máy
     final bool trangThaiGhiNho = prefs.getBool('capymoney_ghi_nho_trang_thai') ?? false;
-    final nguoiDungHienTai = DichVuSupabase.client.auth.currentUser;
+    final nguoiDungHienTai = DichVuSupabase.nguoiDungHienTai;
 
     // Ràng buộc bảo mật: Chỉ cho phép tự động vào thẳng Dashboard nếu người dùng CÓ TICK "Ghi nhớ đăng nhập"
     final Widget manHinhTiepTheo = (trangThaiGhiNho && nguoiDungHienTai != null)

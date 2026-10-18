@@ -104,7 +104,7 @@ class _BsLienKetTaiKhoanState extends State<BsLienKetTaiKhoan> {
     setState(() => _dangTai = true);
 
     try {
-      final user = DichVuSupabase.client.auth.currentUser;
+      final user = DichVuSupabase.nguoiDungHienTai;
       final tkMoi = TaiKhoanNganHangModel(
         id: '',
         nguoiDungId: user?.id ?? 'demo_id',

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../giao_dien/chuan_thiet_ke/mau_sac.dart';
 import '../../giao_dien/chuan_thiet_ke/bo_goc.dart';
 import '../../giao_dien/chuan_thiet_ke/khoang_cach.dart';
@@ -12,6 +11,7 @@ import '../../giao_dien/chuan_thiet_ke/hinh_anh.dart';
 import '../../giao_dien/chuan_thiet_ke/bieu_tuong.dart';
 import '../../giao_dien/chuan_thiet_ke/dap_ung.dart';
 import '../../giao_dien/bottom_sheet/bs_lien_ket_tai_khoan.dart';
+import '../../cau_hinh/duong_dan_api.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
 import '../xac_thuc/man_hinh_dang_nhap.dart';
 
@@ -58,7 +58,7 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
 
   /// Nạp thông tin người dùng từ Supabase CSDL, Auth & SharedPreferences
   Future<void> _loadThongTinNguoiDung() async {
-    final user = DichVuSupabase.client.auth.currentUser;
+    final user = DichVuSupabase.nguoiDungHienTai;
     final prefs = await SharedPreferences.getInstance();
 
     final String emailCurrent = (user?.email ??
@@ -77,26 +77,18 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
 
     String? anhPathCurrent = prefs.getString('capymoney_anh_dai_dien_$emailCurrent');
 
-    // Ưu tiên đọc thông tin mới nhất trực tiếp từ CSDL Supabase
+    // Ưu tiên đọc thông tin mới nhất trực tiếp từ Service CSDL Supabase
     if (user != null) {
       try {
-        final res = await DichVuSupabase.client
-            .from('nguoi_dung')
-            .select('ho_ten, so_dien_thoai, anh_dai_dien')
-            .eq('id', user.id)
-            .maybeSingle();
-
-        if (res != null) {
-          if (res['ho_ten'] != null && (res['ho_ten'] as String).isNotEmpty) {
-            hoTenCurrent = res['ho_ten'] as String;
+        final ndModel = await DichVuSupabase.layThongTinNguoiDung(user.id);
+        if (ndModel != null) {
+          if (ndModel.hoTen.isNotEmpty) hoTenCurrent = ndModel.hoTen;
+          if (ndModel.soDienThoai != null && ndModel.soDienThoai!.isNotEmpty) {
+            sdtCurrent = ndModel.soDienThoai!;
           }
-          if (res['so_dien_thoai'] != null && (res['so_dien_thoai'] as String).isNotEmpty) {
-            sdtCurrent = res['so_dien_thoai'] as String;
-          }
-          final anhDb = res['anh_dai_dien'] as String?;
-          if (anhDb != null && anhDb.isNotEmpty && anhDb.startsWith('http')) {
-            anhPathCurrent = anhDb;
-            await prefs.setString('capymoney_anh_dai_dien_$emailCurrent', anhDb);
+          if (ndModel.anhDaiDien != null && ndModel.anhDaiDien!.startsWith('http')) {
+            anhPathCurrent = ndModel.anhDaiDien;
+            await prefs.setString('capymoney_anh_dai_dien_$emailCurrent', ndModel.anhDaiDien!);
           }
         }
       } catch (_) {}
@@ -175,7 +167,7 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
   /// Lưu ảnh đại diện mới lên Supabase Storage, CSDL & SharedPreferences
   Future<void> _capNhatAnhDaiDien(XFile xFile) async {
     final prefs = await SharedPreferences.getInstance();
-    final user = DichVuSupabase.client.auth.currentUser;
+    final user = DichVuSupabase.nguoiDungHienTai;
 
     // Hiển thị tạm thời bằng file/blob cục bộ trong khi chờ tải lên
     setState(() => _anhDaiDienPath = xFile.path);
@@ -192,7 +184,7 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
 
           // 3. Chỉ lưu URL HTTP công khai vào bảng nguoi_dung (đảm bảo hiển thị trên mọi thiết bị)
           await DichVuSupabase.client
-              .from('nguoi_dung')
+              .from(DuongDanApi.bangNguoiDung)
               .update({'anh_dai_dien': urlOnline})
               .eq('id', user.id);
         }
@@ -302,7 +294,7 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
                   return;
                 }
 
-                final user = DichVuSupabase.client.auth.currentUser;
+                final user = DichVuSupabase.nguoiDungHienTai;
                 final prefs = await SharedPreferences.getInstance();
 
                 await prefs.setString('capymoney_da_dang_nhap_lan_cuoi_ten', tenMoi);
@@ -310,13 +302,11 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
 
                 if (user != null) {
                   try {
-                    await DichVuSupabase.client.auth.updateUser(
-                      UserAttributes(data: {'ho_ten': tenMoi, 'so_dien_thoai': sdtMoi}),
+                    await DichVuSupabase.capNhatThongTinCaNhan(
+                      userId: user.id,
+                      hoTen: tenMoi,
+                      soDienThoai: sdtMoi,
                     );
-                    await DichVuSupabase.client
-                        .from('nguoi_dung')
-                        .update({'ho_ten': tenMoi, 'so_dien_thoai': sdtMoi})
-                        .eq('id', user.id);
                   } catch (_) {}
                 }
 

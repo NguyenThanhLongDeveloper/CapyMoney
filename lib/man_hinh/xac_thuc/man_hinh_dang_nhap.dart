@@ -68,7 +68,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
 
   /// Lắng nghe sự kiện đăng nhập trực tiếp từ Supabase Auth (Dùng cho Google OAuth Callback)
   void _langNgheThayDoiPhienDangNhap() {
-    _authSubscription = DichVuSupabase.client.auth.onAuthStateChange.listen((data) {
+    _authSubscription = DichVuSupabase.onAuthStateChange.listen((data) {
       final session = data.session;
       final event = data.event;
       // Chỉ tự động điều hướng nếu là sự kiện đăng nhập mới thành công
@@ -92,29 +92,26 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
     _matKhauController.clear();
 
     // 2. Hủy session cũ nếu không ở chế độ tự động vào app
-    if (DichVuSupabase.client.auth.currentUser != null) {
+    if (DichVuSupabase.nguoiDungHienTai != null) {
       try {
         await DichVuSupabase.dangXuat();
       } catch (_) {}
     }
 
-    // 3. Nạp thông tin Tên & Avatar mới nhất trực tiếp từ CSDL Supabase
+    // 3. Nạp thông tin Tên & Avatar mới nhất trực tiếp từ Service CSDL Supabase
     if (emailLanCuoi.isNotEmpty) {
       try {
-        final res = await DichVuSupabase.client
-            .from('nguoi_dung')
-            .select('ho_ten, anh_dai_dien')
-            .eq('email', emailLanCuoi)
-            .maybeSingle();
+        final ndModel = await DichVuSupabase.layThongTinNguoiDungTheoEmail(emailLanCuoi);
 
-        if (res != null) {
-          if (res['ho_ten'] != null && (res['ho_ten'] as String).isNotEmpty) {
-            tenLanCuoi = res['ho_ten'] as String;
+        if (ndModel != null) {
+          if (ndModel.hoTen.isNotEmpty) {
+            tenLanCuoi = ndModel.hoTen;
           }
-          final anhDb = res['anh_dai_dien'] as String?;
-          if (anhDb != null && anhDb.isNotEmpty && anhDb.startsWith('http')) {
-            anhLanCuoi = anhDb;
-            await prefs.setString('capymoney_da_dang_nhap_lan_cuoi_anh', anhDb);
+          if (ndModel.anhDaiDien != null &&
+              ndModel.anhDaiDien!.isNotEmpty &&
+              ndModel.anhDaiDien!.startsWith('http')) {
+            anhLanCuoi = ndModel.anhDaiDien;
+            await prefs.setString('capymoney_da_dang_nhap_lan_cuoi_anh', ndModel.anhDaiDien!);
           }
         }
       } catch (_) {}

@@ -2,20 +2,32 @@ import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../cau_hinh/cau_hinh_supabase.dart';
+import '../cau_hinh/duong_dan_api.dart';
+import '../mo_hinh/nguoi_dung_model.dart';
 import '../mo_hinh/tai_khoan_ngan_hang_model.dart';
 import '../mo_hinh/danh_muc_model.dart';
 import '../mo_hinh/giao_dich_model.dart';
 import '../mo_hinh/quy_tiet_kiem_model.dart';
 import '../mo_hinh/lich_su_quy_model.dart';
 
-/// Dịch vụ kết nối và thao tác với CSDL Supabase
+/// Lớp Dịch Vụ Trung Tâm Thực Thi API và Truy Vấn CSDL Supabase
+/// 
+/// Đóng gói bóc tách (Encapsulate API Service Layer). UI Component chỉ cần gọi hàm sạch 
+/// mà không trực tiếp truy vấn đường dẫn API hay tên bảng CSDL.
 class DichVuSupabase {
   DichVuSupabase._();
 
+  /// Supabase Client dùng chung
   static SupabaseClient get client => CauHinhSupabase.client;
 
+  /// Lấy thông tin User hiện đang đăng nhập (hoặc null)
+  static User? get nguoiDungHienTai => client.auth.currentUser;
+
+  /// Lắng nghe sự kiện thay đổi phiên đăng nhập Auth
+  static Stream<AuthState> get onAuthStateChange => client.auth.onAuthStateChange;
+
   // ==========================================
-  // XÁC THỰC NGƯỜI DÙNG (AUTH)
+  // XÁC THỰC NGƯỜI DÙNG & TÀI KHOẢN (AUTH & USER PROFILE)
   // ==========================================
 
   /// Đăng nhập bằng Email & Mật khẩu
@@ -30,7 +42,7 @@ class DichVuSupabase {
   static Future<bool> dangNhapBangGoogle() async {
     return await client.auth.signInWithOAuth(
       OAuthProvider.google,
-      redirectTo: kIsWeb ? Uri.base.origin : 'capymoney://login-callback',
+      redirectTo: kIsWeb ? Uri.base.origin : DuongDanApi.redirectLoginCallback,
     );
   }
 
@@ -38,7 +50,7 @@ class DichVuSupabase {
   static Future<bool> kiemTraEmailDaTonTai(String email) async {
     try {
       final response = await client
-          .from('nguoi_dung')
+          .from(DuongDanApi.bangNguoiDung)
           .select('id')
           .eq('email', email.trim())
           .maybeSingle();
@@ -48,7 +60,7 @@ class DichVuSupabase {
     }
   }
 
-  /// Đăng ký tài khoản mới
+  /// Đăng ký tài khoản mới và tạo hồ sơ người dùng trong CSDL
   static Future<AuthResponse> dangKy({
     required String hoTen,
     required String email,
@@ -64,12 +76,12 @@ class DichVuSupabase {
       },
     );
 
-    // Cập nhật số điện thoại và thông tin vào bảng nguoi_dung trong CSDL
+    // Cập nhật thông tin ban đầu vào bảng nguoi_dung trong CSDL
     if (response.user != null &&
         response.user!.identities != null &&
         response.user!.identities!.isNotEmpty) {
       try {
-        await client.from('nguoi_dung').upsert({
+        await client.from(DuongDanApi.bangNguoiDung).upsert({
           'id': response.user!.id,
           'ho_ten': hoTen,
           'email': email,
@@ -102,12 +114,70 @@ class DichVuSupabase {
     );
   }
 
-  /// Đăng xuất
+  /// Đăng xuất khỏi hệ thống
   static Future<void> dangXuat() async {
     await client.auth.signOut();
   }
 
-  /// Tải ảnh đại diện lên Supabase Storage Bucket 'avatars' (Đơn tên độc nhất bằng timestamp & xóa ảnh cũ)
+  /// Truy xuất Hồ sơ người dùng sạch từ CSDL bằng User ID
+  static Future<NguoiDungModel?> layThongTinNguoiDung(String userId) async {
+    if (userId.isEmpty) return null;
+    try {
+      final res = await client
+          .from(DuongDanApi.bangNguoiDung)
+          .select()
+          .eq('id', userId)
+          .maybeSingle();
+
+      if (res != null) {
+        return NguoiDungModel.fromJson(res);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Truy xuất Hồ sơ người dùng sạch từ CSDL bằng Email
+  static Future<NguoiDungModel?> layThongTinNguoiDungTheoEmail(String email) async {
+    if (email.isEmpty) return null;
+    try {
+      final res = await client
+          .from(DuongDanApi.bangNguoiDung)
+          .select()
+          .eq('email', email.trim().toLowerCase())
+          .maybeSingle();
+
+      if (res != null) {
+        return NguoiDungModel.fromJson(res);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Cập nhật Họ tên và Số điện thoại cá nhân vào CSDL
+  static Future<bool> capNhatThongTinCaNhan({
+    required String userId,
+    required String hoTen,
+    required String soDienThoai,
+  }) async {
+    try {
+      // 1. Cập nhật Metadata trên Auth User
+      await client.auth.updateUser(
+        UserAttributes(data: {'ho_ten': hoTen, 'so_dien_thoai': soDienThoai}),
+      );
+
+      // 2. Cập nhật bản ghi trong bảng nguoi_dung
+      await client
+          .from(DuongDanApi.bangNguoiDung)
+          .update({'ho_ten': hoTen, 'so_dien_thoai': soDienThoai})
+          .eq('id', userId);
+
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Tải ảnh đại diện mới lên Storage Bucket 'avatars' (Xóa file cũ & Đặt tên độc nhất kèm Timestamp)
   static Future<String?> taiAnhDaiDienLenStorage(XFile xFile, String userId) async {
     if (userId.isEmpty) return null;
 
@@ -120,19 +190,19 @@ class DichVuSupabase {
       final filePath = '$userId/avatar_$timestamp.$fileExt';
       final mimeType = 'image/$fileExt';
 
-      // 1. Tự động tìm và xóa tất cả tệp ảnh cũ trong thư mục userId của bucket 'avatars'
+      // 1. Tự động dọn dẹp các tệp ảnh cũ trong thư mục userId của tháp 'avatars'
       try {
-        final danhSachFileCu = await client.storage.from('avatars').list(path: userId);
+        final danhSachFileCu = await client.storage.from(DuongDanApi.thapAvatars).list(path: userId);
         if (danhSachFileCu.isNotEmpty) {
           final filesToRemove = danhSachFileCu.map((f) => '$userId/${f.name}').toList();
-          await client.storage.from('avatars').remove(filesToRemove);
+          await client.storage.from(DuongDanApi.thapAvatars).remove(filesToRemove);
         }
       } catch (e) {
-        debugPrint('Lưu ý khi dọn dẹp avatar cũ trên Supabase: $e');
+        debugPrint('Dọn dẹp avatar cũ trên Supabase: $e');
       }
 
-      // 2. Upload file ảnh đại diện mới với MIME type chuẩn
-      await client.storage.from('avatars').uploadBinary(
+      // 2. Upload file ảnh mới với MIME type chuẩn
+      await client.storage.from(DuongDanApi.thapAvatars).uploadBinary(
         filePath,
         bytes,
         fileOptions: FileOptions(
@@ -141,8 +211,8 @@ class DichVuSupabase {
         ),
       );
 
-      // 3. Trả về URL công khai độc nhất không bị dính cache
-      final publicUrl = client.storage.from('avatars').getPublicUrl(filePath);
+      // 3. Trả về URL công khai
+      final publicUrl = client.storage.from(DuongDanApi.thapAvatars).getPublicUrl(filePath);
       return publicUrl;
     } catch (e) {
       debugPrint('Lỗi upload Supabase Storage: $e');
@@ -151,7 +221,7 @@ class DichVuSupabase {
   }
 
   // ==========================================
-  // TÀI KHOẢN & VÍ NGÂN HÀNG
+  // TÀI KHOẢN & VÍ NGÂN HÀNG (BANK ACCOUNTS & WALLETS)
   // ==========================================
 
   /// Lấy danh sách ví & tài khoản ngân hàng của người dùng
@@ -160,7 +230,7 @@ class DichVuSupabase {
     if (nguoiDung == null) return [];
 
     final response = await client
-        .from('tai_khoan_ngan_hang')
+        .from(DuongDanApi.bangTaiKhoanNganHang)
         .select()
         .eq('nguoi_dung_id', nguoiDung.id)
         .order('tao_luc', ascending: false);
@@ -173,7 +243,7 @@ class DichVuSupabase {
   /// Thêm tài khoản ngân hàng mới
   static Future<TaiKhoanNganHangModel> themTaiKhoan(TaiKhoanNganHangModel model) async {
     final response = await client
-        .from('tai_khoan_ngan_hang')
+        .from(DuongDanApi.bangTaiKhoanNganHang)
         .insert(model.toJson())
         .select()
         .single();
@@ -182,14 +252,14 @@ class DichVuSupabase {
   }
 
   // ==========================================
-  // DANH MỤC THU CHI
+  // DANH MỤC THU CHI (CATEGORIES)
   // ==========================================
 
-  /// Lấy danh sách danh mục (hệ thống + cá nhân)
+  /// Lấy danh sách danh mục thu chi
   static Future<List<DanhMucModel>> layDanhSachDanhMuc() async {
     final nguoiDung = client.auth.currentUser;
     final response = await client
-        .from('danh_muc')
+        .from(DuongDanApi.bangDanhMuc)
         .select()
         .or('nguoi_dung_id.is.null,nguoi_dung_id.eq.${nguoiDung?.id ?? ""}');
 
@@ -197,16 +267,16 @@ class DichVuSupabase {
   }
 
   // ==========================================
-  // GIAO DỊCH THU CHI
+  // GIAO DỊCH THU CHI (TRANSACTIONS)
   // ==========================================
 
-  /// Lấy danh sách tất cả giao dịch
+  /// Lấy danh sách tất cả nhật ký giao dịch
   static Future<List<GiaoDichModel>> layDanhSachGiaoDich() async {
     final nguoiDung = client.auth.currentUser;
     if (nguoiDung == null) return [];
 
     final response = await client
-        .from('giao_dich')
+        .from(DuongDanApi.bangGiaoDich)
         .select()
         .eq('nguoi_dung_id', nguoiDung.id)
         .order('ngay_giao_dich', ascending: false);
@@ -214,10 +284,10 @@ class DichVuSupabase {
     return (response as List).map((e) => GiaoDichModel.fromJson(e)).toList();
   }
 
-  /// Thêm giao dịch mới (chi tiêu hoặc thu nhập)
+  /// Thêm giao dịch mới (Chi tiêu hoặc Thu nhập)
   static Future<GiaoDichModel> themGiaoDich(GiaoDichModel model) async {
     final response = await client
-        .from('giao_dich')
+        .from(DuongDanApi.bangGiaoDich)
         .insert(model.toJson())
         .select()
         .single();
@@ -226,16 +296,16 @@ class DichVuSupabase {
   }
 
   // ==========================================
-  // QUỸ TIẾT KIỆM & MỤC TIÊU
+  // QUỸ TIẾT KIỆM & MỤC TIÊU (SAVINGS FUNDS)
   // ==========================================
 
-  /// Lấy danh sách quỹ tiết kiệm
+  /// Lấy danh sách các quỹ tiết kiệm
   static Future<List<QuyTietKiemModel>> layDanhSachQuy() async {
     final nguoiDung = client.auth.currentUser;
     if (nguoiDung == null) return [];
 
     final response = await client
-        .from('quy_tiet_kiem')
+        .from(DuongDanApi.bangQuyTietKiem)
         .select()
         .eq('nguoi_dung_id', nguoiDung.id)
         .order('tao_luc', ascending: false);
@@ -246,7 +316,7 @@ class DichVuSupabase {
   /// Tạo khoản tiết kiệm / mục tiêu mới
   static Future<QuyTietKiemModel> taoQuyMoi(QuyTietKiemModel model) async {
     final response = await client
-        .from('quy_tiet_kiem')
+        .from(DuongDanApi.bangQuyTietKiem)
         .insert(model.toJson())
         .select()
         .single();
@@ -267,7 +337,7 @@ class DichVuSupabase {
 
     // 1. Lấy thông tin quỹ hiện tại
     final quyData = await client
-        .from('quy_tiet_kiem')
+        .from(DuongDanApi.bangQuyTietKiem)
         .select()
         .eq('id', quyId)
         .single();
@@ -277,7 +347,7 @@ class DichVuSupabase {
 
     // 2. Cập nhật số dư quỹ
     await client
-        .from('quy_tiet_kiem')
+        .from(DuongDanApi.bangQuyTietKiem)
         .update({'so_tien_hien_co': soDuMoi})
         .eq('id', quyId);
 
@@ -293,7 +363,7 @@ class DichVuSupabase {
       maThamChieu: 'CAPY-${DateTime.now().millisecondsSinceEpoch}',
     );
 
-    await client.from('lich_su_quy').insert({
+    await client.from(DuongDanApi.bangLichSuQuy).insert({
       'quy_id': lichSu.quyId,
       'nguoi_dung_id': lichSu.nguoiDungId,
       'tai_khoan_id': lichSu.taiKhoanId,
