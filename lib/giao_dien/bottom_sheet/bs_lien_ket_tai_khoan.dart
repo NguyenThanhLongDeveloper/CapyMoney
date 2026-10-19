@@ -198,33 +198,45 @@ class _BsLienKetTaiKhoanState extends State<BsLienKetTaiKhoan> {
 
               // SECTION 1: HEADER BẢNG TRƯỢT & TIÊU ĐỀ
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.chevron_left_rounded, color: MauSac.chuDao, size: 26),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    icon: const Icon(Icons.chevron_left_rounded, color: MauSac.chuDao, size: 28),
                     onPressed: () => Navigator.pop(context),
                   ),
-                  Column(
-                    children: const [
-                      Text(
-                        'Tài khoản & Ví nhận tiền',
-                        style: TextStyle(
-                          color: MauSac.chuChinh,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: const [
+                        Text(
+                          'Tài khoản & Ví nhận tiền',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: MauSac.chuChinh,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Quản lý phương thức và nguồn nhận tiền',
-                        style: TextStyle(
-                          color: MauSac.chuPhu,
-                          fontSize: 12,
+                        SizedBox(height: 2),
+                        Text(
+                          'Quản lý phương thức và nguồn nhận tiền',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: MauSac.chuPhu,
+                            fontSize: 11,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   IconButton(
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
                     icon: const Icon(Icons.close_rounded, color: MauSac.chuPhu, size: 22),
                     onPressed: () => Navigator.pop(context),
                   ),
@@ -283,49 +295,50 @@ class _BsLienKetTaiKhoanState extends State<BsLienKetTaiKhoan> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: MauSac.nenNoi,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: const Icon(Icons.account_balance_wallet_rounded,
-                                        color: MauSac.phu, size: 20),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        tk.tenNganHang,
-                                        style: const TextStyle(
-                                          color: MauSac.chuChinh,
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      Text(
-                                        '${tk.soTaiKhoan} • ${tk.tenChuTaiKhoan}',
-                                        style: const TextStyle(
-                                          color: MauSac.chuPhu,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: MauSac.nenNoi,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(Icons.account_balance_wallet_rounded,
+                                    color: MauSac.phu, size: 20),
                               ),
-                              Row(
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.delete_outline_rounded, color: MauSac.chiTieu, size: 20),
-                                    onPressed: () => _xoaTaiKhoan(tk.id),
-                                  ),
-                                ],
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      tk.tenNganHang,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: MauSac.chuChinh,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${tk.soTaiKhoan} • ${tk.tenChuTaiKhoan}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: MauSac.chuPhu,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              IconButton(
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                icon: const Icon(Icons.delete_outline_rounded, color: MauSac.chiTieu, size: 20),
+                                onPressed: () => _xoaTaiKhoan(tk.id),
                               ),
                             ],
                           ),
@@ -487,21 +500,24 @@ class _BsLienKetTaiKhoanState extends State<BsLienKetTaiKhoan> {
                         onPressed: () => Navigator.pop(context),
                         style: OutlinedButton.styleFrom(
                           backgroundColor: MauSac.nenNoi,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
                           side: const BorderSide(color: MauSac.duongVienNhat),
                           shape: RoundedRectangleBorder(borderRadius: BoGoc.borderVua),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: const [
-                            Icon(Icons.arrow_back_rounded, color: MauSac.chuPhu, size: 18),
-                            SizedBox(width: 6),
-                            Text('Quay lại', style: TextStyle(color: MauSac.chuChinh, fontSize: 14)),
+                            Icon(Icons.arrow_back_rounded, color: MauSac.chuPhu, size: 16),
+                            SizedBox(width: 4),
+                            FittedBox(
+                              child: Text('Quay lại', style: TextStyle(color: MauSac.chuChinh, fontSize: 13)),
+                            ),
                           ],
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: SizedBox(
                       height: 48,
@@ -510,6 +526,7 @@ class _BsLienKetTaiKhoanState extends State<BsLienKetTaiKhoan> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: MauSac.chuDao,
                           foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
                           elevation: 0,
                           shape: RoundedRectangleBorder(borderRadius: BoGoc.borderVua),
                         ),
@@ -522,14 +539,16 @@ class _BsLienKetTaiKhoanState extends State<BsLienKetTaiKhoan> {
                             : Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: const [
-                                  Icon(Icons.check_circle_rounded, color: Colors.black, size: 18),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    'Xong & Lưu lại',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black,
+                                  Icon(Icons.check_circle_rounded, color: Colors.black, size: 16),
+                                  SizedBox(width: 4),
+                                  FittedBox(
+                                    child: Text(
+                                      'Xong & Lưu lại',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black,
+                                      ),
                                     ),
                                   ),
                                 ],

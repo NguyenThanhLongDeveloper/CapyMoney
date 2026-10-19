@@ -835,62 +835,54 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
                           child: const Icon(Icons.account_balance_wallet_rounded,
                               color: MauSac.chuDao, size: 20),
                         ),
-                        title: Row(
+                        title: const Text(
+                          'Tài khoản & Ví liên kết',
+                          style: TextStyle(
+                            color: MauSac.chuChinh,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: _danhSachViNganHang.isNotEmpty
+                              ? Text(
+                                  _danhSachViNganHang.map((e) => e.tenNganHang).join(' • '),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(color: MauSac.chuPhu, fontSize: 11),
+                                )
+                              : const Text(
+                                  'Chưa liên kết ví / ngân hàng nào',
+                                  style: TextStyle(color: MauSac.chuPhu, fontSize: 11),
+                                ),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Expanded(
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: _danhSachViNganHang.isNotEmpty
+                                    ? MauSac.chuDao.withValues(alpha: 0.15)
+                                    : MauSac.nenNoi,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                               child: Text(
-                                'Tài khoản & Ví liên kết',
+                                _danhSachViNganHang.isNotEmpty
+                                    ? '${_danhSachViNganHang.length} nguồn'
+                                    : '0 nguồn',
                                 style: TextStyle(
-                                  color: MauSac.chuChinh,
-                                  fontSize: 14,
+                                  color: _danhSachViNganHang.isNotEmpty ? MauSac.chuDao : MauSac.chuPhu,
+                                  fontSize: 11,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ),
-                            Row(
-                              children: [
-                                if (_danhSachViNganHang.isNotEmpty) ...[
-                                  for (var i = 0; i < _danhSachViNganHang.length && i < 2; i++) ...[
-                                    _taoChipVi(_danhSachViNganHang[i].tenNganHang),
-                                    const SizedBox(width: 4),
-                                  ],
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: MauSac.chuDao.withValues(alpha: 0.2),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Text(
-                                      '${_danhSachViNganHang.length} nguồn',
-                                      style: const TextStyle(
-                                        color: MauSac.chuDao,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ] else ...[
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: MauSac.nenNoi,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: const Text(
-                                      'Chưa liên kết',
-                                      style: TextStyle(
-                                        color: MauSac.chuPhu,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.chevron_right_rounded, color: MauSac.chuPhu, size: 20),
                           ],
                         ),
-                        trailing: const Icon(Icons.chevron_right_rounded, color: MauSac.chuPhu, size: 20),
                       ),
 
                       const Divider(color: MauSac.duongVienNhat, height: 1),
@@ -1081,25 +1073,6 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  /// Hàm hỗ trợ tạo Chip nhãn vi gọn nhỏ
-  Widget _taoChipVi(String ten) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: MauSac.nenNoi,
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        ten,
-        style: const TextStyle(
-          color: MauSac.chuPhu,
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
         ),
       ),
     );
