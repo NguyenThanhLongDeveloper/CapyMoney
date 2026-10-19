@@ -32,7 +32,7 @@ class DuongDanApi {
   // ==========================================
 
   /// Tháp lưu trữ ảnh đại diện người dùng
-  static const String thapAvatars = 'avatars';
+  static const String thapAvatars = 'anh_dai_dien';
 
   /// Tháp lưu trữ ảnh hóa đơn chứng từ chụp kèm
   static const String thapHoaDon = 'hoa_don';
