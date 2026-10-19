@@ -242,13 +242,50 @@ class DichVuSupabase {
 
   /// Thêm tài khoản ngân hàng mới
   static Future<TaiKhoanNganHangModel> themTaiKhoan(TaiKhoanNganHangModel model) async {
+    final Map<String, dynamic> data = model.toJson();
+    data.remove('id'); // Tự động để Supabase tạo UUID
+
     final response = await client
         .from(DuongDanApi.bangTaiKhoanNganHang)
-        .insert(model.toJson())
+        .insert(data)
         .select()
         .single();
 
     return TaiKhoanNganHangModel.fromJson(response);
+  }
+
+  /// Xóa tài khoản ngân hàng / ví liên kết
+  static Future<bool> xoaTaiKhoan(String id) async {
+    try {
+      await client
+          .from(DuongDanApi.bangTaiKhoanNganHang)
+          .delete()
+          .eq('id', id);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Đặt làm nguồn nhận tiền chính
+  static Future<bool> datLamNhanChinh(String id, String userId) async {
+    try {
+      // 1. Đặt tất cả tài khoản của user về la_nhan_chinh = false
+      await client
+          .from(DuongDanApi.bangTaiKhoanNganHang)
+          .update({'la_nhan_chinh': false})
+          .eq('nguoi_dung_id', userId);
+
+      // 2. Đặt tài khoản id được chọn về la_nhan_chinh = true
+      await client
+          .from(DuongDanApi.bangTaiKhoanNganHang)
+          .update({'la_nhan_chinh': true})
+          .eq('id', id);
+
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   // ==========================================

@@ -12,6 +12,7 @@ import '../../giao_dien/chuan_thiet_ke/bieu_tuong.dart';
 import '../../giao_dien/chuan_thiet_ke/dap_ung.dart';
 import '../../giao_dien/bottom_sheet/bs_lien_ket_tai_khoan.dart';
 import '../../cau_hinh/duong_dan_api.dart';
+import '../../mo_hinh/tai_khoan_ngan_hang_model.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
 import '../xac_thuc/man_hinh_dang_nhap.dart';
 
@@ -51,7 +52,10 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
   DateTime? _thoiGianTaoTaiKhoan;
 
   /// Số lượng ví / tài khoản ngân hàng liên kết
-  int _soLuongVi = 3;
+  int _soLuongVi = 0;
+
+  /// Danh sách tài khoản / ví nhận tiền liên kết từ CSDL
+  List<TaiKhoanNganHangModel> _danhSachViNganHang = [];
 
   /// Thư viện chọn/chụp ảnh ImagePicker
   final ImagePicker _picker = ImagePicker();
@@ -108,7 +112,8 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
     String? anhPathCurrent = prefs.getString('capymoney_anh_dai_dien_$emailCurrent');
 
     DateTime? taoLucAcc = user?.createdAt != null ? DateTime.tryParse(user!.createdAt) : null;
-    int soViCount = 3;
+    int soViCount = 0;
+    List<TaiKhoanNganHangModel> listViLoaded = [];
 
     // Ưu tiên đọc thông tin mới nhất trực tiếp từ Service CSDL Supabase
     if (user != null) {
@@ -128,11 +133,10 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
           }
         }
 
-        // Lấy số lượng ví liên kết từ Service CSDL
+        // Lấy danh sách tài khoản & ví thực tế từ Service CSDL Supabase
         final listVi = await DichVuSupabase.layDanhSachTaiKhoan();
-        if (listVi.isNotEmpty) {
-          soViCount = listVi.length;
-        }
+        soViCount = listVi.length;
+        listViLoaded = listVi;
       } catch (_) {}
     }
 
@@ -154,6 +158,7 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
         _dangNhapVanTay = trangThaiVanTay;
         _thoiGianTaoTaiKhoan = taoLucAcc;
         _soLuongVi = soViCount;
+        _danhSachViNganHang = listViLoaded;
       });
     }
   }
@@ -817,7 +822,10 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
                     children: [
                       // Nút Mở Bottom Sheet Liên kết ví & tài khoản ngân hàng
                       ListTile(
-                        onTap: () => BsLienKetTaiKhoan.hienThi(context),
+                        onTap: () async {
+                          await BsLienKetTaiKhoan.hienThi(context);
+                          _loadThongTinNguoiDung();
+                        },
                         leading: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
@@ -841,27 +849,43 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
                             ),
                             Row(
                               children: [
-                                _taoChipVi('VCB'),
-                                const SizedBox(width: 4),
-                                _taoChipVi('TCB'),
-                                const SizedBox(width: 4),
-                                _taoChipVi('MoMo'),
-                                const SizedBox(width: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: MauSac.chuDao.withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: const Text(
-                                    '3 nguồn',
-                                    style: TextStyle(
-                                      color: MauSac.chuDao,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
+                                if (_danhSachViNganHang.isNotEmpty) ...[
+                                  for (var i = 0; i < _danhSachViNganHang.length && i < 2; i++) ...[
+                                    _taoChipVi(_danhSachViNganHang[i].tenNganHang),
+                                    const SizedBox(width: 4),
+                                  ],
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: MauSac.chuDao.withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      '${_danhSachViNganHang.length} nguồn',
+                                      style: const TextStyle(
+                                        color: MauSac.chuDao,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
-                                ),
+                                ] else ...[
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: MauSac.nenNoi,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Text(
+                                      'Chưa liên kết',
+                                      style: TextStyle(
+                                        color: MauSac.chuPhu,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                           ],
