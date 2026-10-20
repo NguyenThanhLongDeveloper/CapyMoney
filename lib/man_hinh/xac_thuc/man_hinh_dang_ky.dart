@@ -443,7 +443,7 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
 
                       const SizedBox(height: KhoangCach.vua),
 
-                      // SECTION 3: KHUNG KIỂM TRA ĐIỀU KIỆN MẬT KHẨU THỜI GIAN THỰC (REALTIME INDICATORS)
+                      // SECTION 3: KHUNG KIỂM TRA ĐIỀU KIỆN RÀNG BUỘC THỜI GIAN THỰC (REALTIME INDICATORS)
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
@@ -452,6 +452,44 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
                         ),
                         child: Column(
                           children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  _emailHopLe ? Icons.check_circle_rounded : Icons.circle_outlined,
+                                  color: _emailHopLe ? MauSac.chuDao : MauSac.chuMo,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Địa chỉ Email đúng định dạng',
+                                  style: TextStyle(
+                                    color: _emailHopLe ? MauSac.chuChinh : MauSac.chuMo,
+                                    fontSize: 12,
+                                    fontWeight: _emailHopLe ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                Icon(
+                                  _sdtHopLe ? Icons.check_circle_rounded : Icons.circle_outlined,
+                                  color: _sdtHopLe ? MauSac.chuDao : MauSac.chuMo,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Số điện thoại gồm đúng 10 chữ số',
+                                  style: TextStyle(
+                                    color: _sdtHopLe ? MauSac.chuChinh : MauSac.chuMo,
+                                    fontSize: 12,
+                                    fontWeight: _sdtHopLe ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
                             Row(
                               children: [
                                 Icon(
