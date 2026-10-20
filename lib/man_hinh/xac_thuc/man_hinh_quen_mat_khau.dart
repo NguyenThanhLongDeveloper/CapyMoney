@@ -215,7 +215,7 @@ class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
                     controller: _emailController,
                     style: const TextStyle(color: MauSac.chuChinh, fontSize: 14),
                     decoration: InputDecoration(
-                      hintText: 'email@gmail.com',
+                      hintText: 'example@gmail.com',
                       hintStyle: const TextStyle(color: MauSac.chuMo),
                       prefixIcon: const Icon(Icons.email_outlined, color: MauSac.chuPhu, size: 20),
                       filled: true,

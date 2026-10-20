@@ -239,7 +239,7 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
                         controller: _hoTenController,
                         style: const TextStyle(color: MauSac.chuChinh, fontSize: 14),
                         decoration: InputDecoration(
-                          hintText: 'Nguyễn Hải Đăng',
+                          hintText: 'Nguễn Văn A',
                           hintStyle: const TextStyle(color: MauSac.chuMo),
                           prefixIcon: const Icon(Icons.person_outline_rounded, color: MauSac.chuPhu, size: 20),
                           filled: true,
@@ -334,7 +334,7 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
                         style: const TextStyle(color: MauSac.chuChinh, fontSize: 14),
                         decoration: InputDecoration(
                           counterText: '',
-                          hintText: '0912345678',
+                          hintText: '09********',
                           hintStyle: const TextStyle(color: MauSac.chuMo),
                           prefixIcon: const Icon(Icons.phone_outlined, color: MauSac.chuPhu, size: 20),
                           filled: true,

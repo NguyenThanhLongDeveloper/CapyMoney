@@ -46,6 +46,89 @@ class DichVuSupabase {
     );
   }
 
+  /// Tự động đồng bộ thông tin Google OAuth (Họ tên, Email, Avatar) vào CSDL
+  /// 
+  /// - KỊCH BẢN 1: Nếu cột `ho_ten` trong CSDL đã có tên thực -> BẢO TỒN NGUYÊN VẸN CSDL, không ghi đè.
+  /// - KỊCH BẢN 2: Nếu `ho_ten` bị rỗng hoặc mang tên mặc định ('Chủ tài khoản' / 'Người dùng Capy') -> Cập nhật tên thực từ Google Auth sang CSDL.
+  static Future<NguoiDungModel?> dongBoThongTinNguoiDungGoogle() async {
+    final user = client.auth.currentUser;
+    if (user == null) return null;
+
+    try {
+      // 1. Trích xuất Display Name & Avatar từ Google Authentication Metadata
+      final String tenGoogle = (user.userMetadata?['display_name'] as String?) ??
+          (user.userMetadata?['full_name'] as String?) ??
+          (user.userMetadata?['name'] as String?) ??
+          (user.userMetadata?['ho_ten'] as String?) ??
+          '';
+
+      final String? avatarGoogle = (user.userMetadata?['avatar_url'] as String?) ??
+          (user.userMetadata?['picture'] as String?) ??
+          (user.userMetadata?['anh_dai_dien'] as String?);
+
+      final String emailUser = user.email ?? '';
+
+      // 2. Truy vấn bản ghi từ CSDL nguoi_dung
+      final res = await client
+          .from(DuongDanApi.bangNguoiDung)
+          .select()
+          .eq('id', user.id)
+          .maybeSingle();
+
+      if (res != null) {
+        final existingModel = NguoiDungModel.fromJson(res);
+        final bool isTenMacDinh = existingModel.hoTen.trim().isEmpty ||
+            existingModel.hoTen == 'Người dùng Capy' ||
+            existingModel.hoTen == 'Chủ tài khoản';
+
+        // Nếu bản ghi cũ mang tên mặc định và có tên thực từ Google Auth -> Cập nhật tên thực vào CSDL!
+        if (isTenMacDinh && tenGoogle.isNotEmpty) {
+          await client
+              .from(DuongDanApi.bangNguoiDung)
+              .update({
+                'ho_ten': tenGoogle,
+                'anh_dai_dien': existingModel.anhDaiDien ?? avatarGoogle,
+              })
+              .eq('id', user.id);
+
+          await client.auth.updateUser(
+            UserAttributes(data: {
+              'ho_ten': tenGoogle,
+              'anh_dai_dien': existingModel.anhDaiDien ?? avatarGoogle,
+            }),
+          );
+
+          return await layThongTinNguoiDung(user.id);
+        }
+
+        // KỊCH BẢN 1: Đã có tên thực riêng -> Bảo tồn 100% dữ liệu CSDL cũ
+        return existingModel;
+      }
+
+      // KỊCH BẢN 2: LẦN ĐẦU TIÊN ĐĂNG NHẬP -> Tạo mới bản ghi với Tên thực từ Google Auth
+      final Map<String, dynamic> payload = {
+        'id': user.id,
+        'ho_ten': tenGoogle.isNotEmpty ? tenGoogle : 'Chủ tài khoản',
+        'email': emailUser,
+        'anh_dai_dien': avatarGoogle,
+      };
+
+      await client.from(DuongDanApi.bangNguoiDung).insert(payload);
+
+      await client.auth.updateUser(
+        UserAttributes(data: {
+          'ho_ten': tenGoogle.isNotEmpty ? tenGoogle : 'Chủ tài khoản',
+          'anh_dai_dien': avatarGoogle,
+        }),
+      );
+
+      return await layThongTinNguoiDung(user.id);
+    } catch (e) {
+      debugPrint('Lỗi đồng bộ người dùng Google OAuth: $e');
+      return null;
+    }
+  }
+
   /// Kiểm tra địa chỉ Email đã tồn tại trong CSDL chưa
   static Future<bool> kiemTraEmailDaTonTai(String email) async {
     try {

@@ -45,7 +45,7 @@ class NguoiDungModel {
   factory NguoiDungModel.fromJson(Map<String, dynamic> json) {
     return NguoiDungModel(
       id: json['id'] as String,
-      hoTen: json['ho_ten'] as String? ?? 'Người dùng Capy',
+      hoTen: json['ho_ten'] as String? ?? '',
       email: json['email'] as String? ?? '',
       soDienThoai: json['so_dien_thoai'] as String?,
       anhDaiDien: json['anh_dai_dien'] as String?,

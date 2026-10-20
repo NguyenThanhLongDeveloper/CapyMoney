@@ -97,17 +97,17 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
 
     final String emailCurrent = (user?.email ??
             prefs.getString('capymoney_da_dang_nhap_lan_cuoi_email') ??
-            'haidang.finance@gmail.com')
+            'example@gmail.com')
         .toLowerCase()
         .trim();
 
     String hoTenCurrent = (user?.userMetadata?['ho_ten'] as String?) ??
         prefs.getString('capymoney_da_dang_nhap_lan_cuoi_ten') ??
-        'Nguyễn Hải Đăng';
+        'Nguoi dung Capy';
 
     String sdtCurrent = (user?.userMetadata?['so_dien_thoai'] as String?) ??
         prefs.getString('capymoney_da_dang_nhap_lan_cuoi_sdt') ??
-        '0912345678';
+        'Chưa có SĐT';
 
     String? anhPathCurrent = prefs.getString('capymoney_anh_dai_dien_$emailCurrent');
 
@@ -118,7 +118,12 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
     // Ưu tiên đọc thông tin mới nhất trực tiếp từ Service CSDL Supabase
     if (user != null) {
       try {
-        final ndModel = await DichVuSupabase.layThongTinNguoiDung(user.id);
+        var ndModel = await DichVuSupabase.layThongTinNguoiDung(user.id);
+        // Nếu lần đầu tiên chưa có bản ghi hoặc mang tên mặc định cũ -> Khởi tạo / đồng bộ tên thực từ Google Auth
+        if (ndModel == null || ndModel.hoTen.isEmpty || ndModel.hoTen == 'Nguoi dung Capy' || ndModel.hoTen == 'Chủ tài khoản') {
+          ndModel = await DichVuSupabase.dongBoThongTinNguoiDungGoogle();
+        }
+
         if (ndModel != null) {
           if (ndModel.hoTen.isNotEmpty) hoTenCurrent = ndModel.hoTen;
           if (ndModel.soDienThoai != null && ndModel.soDienThoai!.isNotEmpty) {

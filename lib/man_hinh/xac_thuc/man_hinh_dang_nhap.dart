@@ -68,11 +68,22 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
 
   /// Lắng nghe sự kiện đăng nhập trực tiếp từ Supabase Auth (Dùng cho Google OAuth Callback)
   void _langNgheThayDoiPhienDangNhap() {
-    _authSubscription = DichVuSupabase.onAuthStateChange.listen((data) {
+    _authSubscription = DichVuSupabase.onAuthStateChange.listen((data) async {
       final session = data.session;
       final event = data.event;
-      // Chỉ tự động điều hướng nếu là sự kiện đăng nhập mới thành công
+      // Khi người dùng vừa đăng nhập thành công bằng Google OAuth
       if (session != null && mounted && event == AuthChangeEvent.signedIn) {
+        // Tự động đồng bộ Tên và Avatar từ Google vào Supabase CSDL
+        final ndModel = await DichVuSupabase.dongBoThongTinNguoiDungGoogle();
+        final prefs = await SharedPreferences.getInstance();
+        if (ndModel != null) {
+          await prefs.setString('capymoney_da_dang_nhap_lan_cuoi_ten', ndModel.hoTen);
+          if (ndModel.anhDaiDien != null) {
+            await prefs.setString('capymoney_da_dang_nhap_lan_cuoi_anh', ndModel.anhDaiDien!);
+          }
+        }
+
+        if (!mounted) return;
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const ManHinhChinhTab()),
         );
@@ -613,7 +624,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
                         keyboardType: TextInputType.emailAddress,
                         style: const TextStyle(color: MauSac.chuChinh, fontSize: 14),
                         decoration: InputDecoration(
-                          hintText: 'haidang.finance@gmail.com',
+                          hintText: 'example@gmail.com',
                           hintStyle: const TextStyle(color: MauSac.chuMo),
                           prefixIcon: const Icon(Icons.email_outlined, color: MauSac.chuPhu, size: 20),
                           filled: true,
