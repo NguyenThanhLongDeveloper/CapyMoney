@@ -260,6 +260,44 @@ class DichVuSupabase {
     }
   }
 
+  /// Cập nhật cài đặt Nhắc nhở ghi chép giao dịch (Bật/tắt + Giờ nhắc)
+  static Future<bool> capNhatCaiDatNhacNho({
+    required String userId,
+    required bool nhacNhoGhiChep,
+    required String thoiGianNhacNho,
+  }) async {
+    try {
+      await client
+          .from(DuongDanApi.bangNguoiDung)
+          .update({
+            'nhac_nho_ghi_chep': nhacNhoGhiChep,
+            'thoi_gian_nhac_nho': thoiGianNhacNho,
+          })
+          .eq('id', userId);
+      return true;
+    } catch (e) {
+      debugPrint('Lỗi cập nhật cài đặt nhắc nhở: $e');
+      return false;
+    }
+  }
+
+  /// Cập nhật cài đặt Báo cáo tuần qua Gmail
+  static Future<bool> capNhatCaiDatBaoCaoGmail({
+    required String userId,
+    required bool baoCaoGmail,
+  }) async {
+    try {
+      await client
+          .from(DuongDanApi.bangNguoiDung)
+          .update({'bao_cao_gmail': baoCaoGmail})
+          .eq('id', userId);
+      return true;
+    } catch (e) {
+      debugPrint('Lỗi cập nhật cài đặt báo cáo Gmail: $e');
+      return false;
+    }
+  }
+
   /// Tải ảnh đại diện mới lên Storage Bucket 'avatars' (Xóa file cũ & Đặt tên độc nhất kèm Timestamp)
   static Future<String?> taiAnhDaiDienLenStorage(XFile xFile, String userId) async {
     if (userId.isEmpty) return null;

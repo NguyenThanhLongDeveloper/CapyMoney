@@ -30,8 +30,11 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
   /// Cấu hình bật/tắt nhận báo cáo tuần qua Gmail
   bool _baoCaoGmail = true;
 
-  /// Cấu hình bật/tắt nhắc nhở ghi chép giao dịch 21:30
+  /// Cấu hình bật/tắt nhắc nhở ghi chép giao dịch hàng ngày
   bool _nhacNhoGhiChep = true;
+
+  /// Thời gian phát thông báo nhắc nhở (Mặc định '21:30')
+  String _thoiGianNhacNho = '21:30';
 
   /// Cấu hình bật/tắt đăng nhập bằng vân tay cho tài khoản hiện tại
   bool _dangNhapVanTay = false;
@@ -115,6 +118,10 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
     int soViCount = 0;
     List<TaiKhoanNganHangModel> listViLoaded = [];
 
+    bool nhacNhoGhiChepVal = prefs.getBool('capymoney_nhac_nho_bat_$emailCurrent') ?? true;
+    String thoiGianNhacNhoVal = prefs.getString('capymoney_nhac_nho_gio_$emailCurrent') ?? '21:30';
+    bool baoCaoGmailVal = prefs.getBool('capymoney_bao_cao_gmail_$emailCurrent') ?? true;
+
     // Ưu tiên đọc thông tin mới nhất trực tiếp từ Service CSDL Supabase
     if (user != null) {
       try {
@@ -126,9 +133,7 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
 
         if (ndModel != null) {
           if (ndModel.hoTen.isNotEmpty) hoTenCurrent = ndModel.hoTen;
-          if (ndModel.soDienThoai != null && ndModel.soDienThoai!.isNotEmpty) {
-            sdtCurrent = ndModel.soDienThoai!;
-          }
+          sdtCurrent = ndModel.soDienThoai ?? '';
           if (ndModel.anhDaiDien != null && ndModel.anhDaiDien!.startsWith('http')) {
             anhPathCurrent = ndModel.anhDaiDien;
             await prefs.setString('capymoney_anh_dai_dien_$emailCurrent', ndModel.anhDaiDien!);
@@ -136,6 +141,11 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
           if (ndModel.taoLuc != null) {
             taoLucAcc = ndModel.taoLuc;
           }
+          nhacNhoGhiChepVal = ndModel.nhacNhoGhiChep;
+          if (ndModel.thoiGianNhacNho.isNotEmpty) {
+            thoiGianNhacNhoVal = ndModel.thoiGianNhacNho;
+          }
+          baoCaoGmailVal = ndModel.baoCaoGmail;
         }
 
         // Lấy danh sách tài khoản & ví thực tế từ Service CSDL Supabase
@@ -164,6 +174,9 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
         _thoiGianTaoTaiKhoan = taoLucAcc;
         _soLuongVi = soViCount;
         _danhSachViNganHang = listViLoaded;
+        _nhacNhoGhiChep = nhacNhoGhiChepVal;
+        _thoiGianNhacNho = thoiGianNhacNhoVal;
+        _baoCaoGmail = baoCaoGmailVal;
       });
     }
   }
@@ -386,6 +399,135 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
           ],
         );
       },
+    );
+  }
+
+  /// Cập nhật bật/tắt nhắc nhở ghi chép giao dịch hàng ngày
+  Future<void> _thayDoiTrangThaiNhacNho(bool val) async {
+    final prefs = await SharedPreferences.getInstance();
+    final user = DichVuSupabase.nguoiDungHienTai;
+
+    setState(() => _nhacNhoGhiChep = val);
+
+    if (_email.isNotEmpty) {
+      await prefs.setBool('capymoney_nhac_nho_bat_$_email', val);
+    }
+
+    if (user != null) {
+      await DichVuSupabase.capNhatCaiDatNhacNho(
+        userId: user.id,
+        nhacNhoGhiChep: val,
+        thoiGianNhacNho: _thoiGianNhacNho,
+      );
+    }
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          val
+              ? 'Đã bật nhắc nhở ghi chép giao dịch lúc $_thoiGianNhacNho hàng ngày'
+              : 'Đã tắt nhắc nhở ghi chép giao dịch',
+        ),
+        backgroundColor: val ? MauSac.chuDao : MauSac.nenNoi,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  /// Mở hộp thoại chọn giờ nhắc nhở ghi chép giao dịch (TimePicker)
+  Future<void> _chonThoiGianNhacNho() async {
+    final parts = _thoiGianNhacNho.split(':');
+    final int initialHour = parts.length == 2 ? (int.tryParse(parts[0]) ?? 21) : 21;
+    final int initialMinute = parts.length == 2 ? (int.tryParse(parts[1]) ?? 30) : 30;
+
+    final TimeOfDay? timePicked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: initialHour, minute: initialMinute),
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.dark().copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: MauSac.chuDao,
+              onPrimary: Colors.black,
+              surface: MauSac.nenThe,
+              onSurface: MauSac.chuChinh,
+            ),
+            dialogTheme: const DialogThemeData(backgroundColor: MauSac.nenThe),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (timePicked != null) {
+      final String gioMoi =
+          '${timePicked.hour.toString().padLeft(2, '0')}:${timePicked.minute.toString().padLeft(2, '0')}';
+
+      setState(() {
+        _thoiGianNhacNho = gioMoi;
+        _nhacNhoGhiChep = true;
+      });
+
+      final prefs = await SharedPreferences.getInstance();
+      final user = DichVuSupabase.nguoiDungHienTai;
+
+      if (_email.isNotEmpty) {
+        await prefs.setString('capymoney_nhac_nho_gio_$_email', gioMoi);
+        await prefs.setBool('capymoney_nhac_nho_bat_$_email', true);
+      }
+
+      if (user != null) {
+        await DichVuSupabase.capNhatCaiDatNhacNho(
+          userId: user.id,
+          nhacNhoGhiChep: true,
+          thoiGianNhacNho: gioMoi,
+        );
+      }
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Đã cập nhật giờ nhắc nhở ghi chép thành $gioMoi hàng ngày!'),
+          backgroundColor: MauSac.chuDao,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  /// Cập nhật bật/tắt nhận báo cáo tuần qua Gmail
+  Future<void> _thayDoiBaoCaoGmail(bool val) async {
+    final prefs = await SharedPreferences.getInstance();
+    final user = DichVuSupabase.nguoiDungHienTai;
+
+    setState(() => _baoCaoGmail = val);
+
+    if (_email.isNotEmpty) {
+      await prefs.setBool('capymoney_bao_cao_gmail_$_email', val);
+    }
+
+    if (user != null) {
+      await DichVuSupabase.capNhatCaiDatBaoCaoGmail(
+        userId: user.id,
+        baoCaoGmail: val,
+      );
+    }
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          val
+              ? 'Đã bật nhận báo cáo phân tích tuần qua Gmail'
+              : 'Đã tắt nhận báo cáo phân tích qua Gmail',
+        ),
+        backgroundColor: val ? MauSac.chuDao : MauSac.nenNoi,
+        duration: const Duration(seconds: 3),
+      ),
     );
   }
 
@@ -918,7 +1060,7 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
                         trailing: Switch(
                           value: _baoCaoGmail,
                           activeTrackColor: MauSac.chuDao,
-                          onChanged: (val) => setState(() => _baoCaoGmail = val),
+                          onChanged: (val) => _thayDoiBaoCaoGmail(val),
                         ),
                       ),
                     ],
@@ -948,8 +1090,9 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
                   ),
                   child: Column(
                     children: [
-                      // Bật/tắt Nhắc nhở ghi chép giao dịch
+                      // Bật/tắt & Cài đặt giờ Nhắc nhở ghi chép giao dịch
                       ListTile(
+                        onTap: _chonThoiGianNhacNho,
                         leading: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
@@ -959,22 +1102,55 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
                           child: const Icon(Icons.notifications_active_rounded,
                               color: MauSac.canhBao, size: 20),
                         ),
-                        title: const Text(
-                          'Nhắc nhở ghi chép',
-                          style: TextStyle(
-                            color: MauSac.chuChinh,
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        title: Row(
+                          children: [
+                            const Expanded(
+                              child: Text(
+                                'Nhắc nhở ghi chép',
+                                style: TextStyle(
+                                  color: MauSac.chuChinh,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: MauSac.nenNoi,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: MauSac.duongVienNhat),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.access_time_rounded, color: MauSac.canhBao, size: 12),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    _thoiGianNhacNho,
+                                    style: const TextStyle(
+                                      color: MauSac.canhBao,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 2),
+                                  const Icon(Icons.edit_rounded, color: MauSac.chuPhu, size: 10),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                        subtitle: const Text(
-                          'Thông báo mỗi 21:30 hàng ngày',
-                          style: TextStyle(color: MauSac.chuPhu, fontSize: 11),
+                        subtitle: Text(
+                          _nhacNhoGhiChep
+                              ? 'Chạm để đổi giờ • Nhắc nhở lúc $_thoiGianNhacNho hàng ngày'
+                              : 'Đã tắt thông báo nhắc nhở hàng ngày',
+                          style: const TextStyle(color: MauSac.chuPhu, fontSize: 11),
                         ),
                         trailing: Switch(
                           value: _nhacNhoGhiChep,
                           activeTrackColor: MauSac.chuDao,
-                          onChanged: (val) => setState(() => _nhacNhoGhiChep = val),
+                          onChanged: (val) => _thayDoiTrangThaiNhacNho(val),
                         ),
                       ),
 
