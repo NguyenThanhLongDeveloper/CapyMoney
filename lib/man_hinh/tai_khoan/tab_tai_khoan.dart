@@ -11,6 +11,7 @@ import '../../giao_dien/chuan_thiet_ke/hinh_anh.dart';
 import '../../giao_dien/chuan_thiet_ke/bieu_tuong.dart';
 import '../../giao_dien/chuan_thiet_ke/dap_ung.dart';
 import '../../giao_dien/bottom_sheet/bs_lien_ket_tai_khoan.dart';
+import '../../giao_dien/bottom_sheet/bs_cai_dat_nhac_nho.dart';
 import '../../cau_hinh/duong_dan_api.dart';
 import '../../mo_hinh/tai_khoan_ngan_hang_model.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
@@ -436,35 +437,14 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
     );
   }
 
-  /// Mở hộp thoại chọn giờ nhắc nhở ghi chép giao dịch (TimePicker)
+  /// Mở Bảng trượt Cài đặt giờ nhắc nhở ghi chép giao dịch (BsCaiDatNhacNho)
   Future<void> _chonThoiGianNhacNho() async {
-    final parts = _thoiGianNhacNho.split(':');
-    final int initialHour = parts.length == 2 ? (int.tryParse(parts[0]) ?? 21) : 21;
-    final int initialMinute = parts.length == 2 ? (int.tryParse(parts[1]) ?? 30) : 30;
-
-    final TimeOfDay? timePicked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay(hour: initialHour, minute: initialMinute),
-      builder: (context, child) {
-        return Theme(
-          data: ThemeData.dark().copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: MauSac.chuDao,
-              onPrimary: Colors.black,
-              surface: MauSac.nenThe,
-              onSurface: MauSac.chuChinh,
-            ),
-            dialogTheme: const DialogThemeData(backgroundColor: MauSac.nenThe),
-          ),
-          child: child!,
-        );
-      },
+    final String? gioMoi = await BsCaiDatNhacNho.hienThi(
+      context,
+      thoiGianBanDau: _thoiGianNhacNho,
     );
 
-    if (timePicked != null) {
-      final String gioMoi =
-          '${timePicked.hour.toString().padLeft(2, '0')}:${timePicked.minute.toString().padLeft(2, '0')}';
-
+    if (gioMoi != null && gioMoi.isNotEmpty) {
       setState(() {
         _thoiGianNhacNho = gioMoi;
         _nhacNhoGhiChep = true;
