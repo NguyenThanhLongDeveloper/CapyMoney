@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../giao_dien/chuan_thiet_ke/mau_sac.dart';
@@ -235,9 +236,14 @@ class _ManHinhThemGiaoDichState extends State<ManHinhThemGiaoDich> {
 
     try {
       String? urlHoaDon;
-      // 1. Tải ảnh hóa đơn lên Storage nếu có
+      // 1. Tải ảnh hóa đơn lên Storage nếu có chọn
       if (_anhHoaDonFile != null) {
         urlHoaDon = await DichVuSupabase.taiHoaDonLenStorage(_anhHoaDonFile!, user.id);
+        if (urlHoaDon == null && mounted) {
+          _hienThongBao('Không thể tải ảnh hóa đơn lên máy chủ Storage. Vui lòng kiểm tra Bucket hoa_don trên Supabase!');
+          setState(() => _dangXuLy = false);
+          return;
+        }
       }
 
       // 2. Khởi tạo đối tượng GiaoDichModel
@@ -821,6 +827,90 @@ class _ManHinhThemGiaoDichState extends State<ManHinhThemGiaoDich> {
                               ),
                             ],
                           ),
+
+                          // Khung xem trước ảnh chứng từ tạm thời (Chưa đẩy lên Supabase cho đến khi bấm Lưu)
+                          if (_anhHoaDonFile != null) ...[
+                            const SizedBox(height: 10),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: MauSac.nenNoi,
+                                borderRadius: BoGoc.borderVua,
+                                border: Border.all(color: MauSac.chuDao, width: 1),
+                              ),
+                              child: Row(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: SizedBox(
+                                      width: 48,
+                                      height: 48,
+                                      child: FutureBuilder<Uint8List>(
+                                        future: _anhHoaDonFile!.readAsBytes(),
+                                        builder: (context, snapshot) {
+                                          if (snapshot.hasData) {
+                                            return Image.memory(
+                                              snapshot.data!,
+                                              fit: BoxFit.cover,
+                                            );
+                                          }
+                                          return const Center(
+                                            child: SizedBox(
+                                              width: 16,
+                                              height: 16,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: MauSac.chuDao,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: const [
+                                            Icon(Icons.check_circle_rounded, color: MauSac.chuDao, size: 14),
+                                            SizedBox(width: 4),
+                                            Text(
+                                              'Ảnh chứng từ tạm thời',
+                                              style: TextStyle(
+                                                color: MauSac.chuDao,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          _anhHoaDonFile!.name,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(color: MauSac.chuPhu, fontSize: 10),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        const Text(
+                                          'Sẽ tải lên Supabase khi bấm Lưu',
+                                          style: TextStyle(color: MauSac.chuMo, fontSize: 9),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.cancel_rounded, color: MauSac.chiTieu, size: 22),
+                                    onPressed: () => setState(() => _anhHoaDonFile = null),
+                                    tooltip: 'Xóa ảnh',
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
 
                           const SizedBox(height: 6),
 
