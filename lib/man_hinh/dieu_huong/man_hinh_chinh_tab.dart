@@ -3,6 +3,7 @@ import '../../giao_dien/chuan_thiet_ke/mau_sac.dart';
 import '../../giao_dien/chuan_thiet_ke/bo_goc.dart';
 import '../../giao_dien/chuan_thiet_ke/bieu_tuong.dart';
 import '../tai_khoan/tab_tai_khoan.dart';
+import '../giao_dich/man_hinh_them_giao_dich.dart';
 
 /// Màn hình Cấu trúc Chính (Main Navigation Screen)
 /// 
@@ -74,7 +75,12 @@ class _ManHinhChinhTabState extends State<ManHinhChinhTab> {
         margin: const EdgeInsets.only(top: 10),
         child: FloatingActionButton(
           onPressed: () {
-            // Thao tác mở menu chọn ghi chép Chi tiêu / Thu nhập
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const ManHinhThemGiaoDich(),
+              ),
+            );
           },
           backgroundColor: MauSac.chuDao,
           elevation: 4,

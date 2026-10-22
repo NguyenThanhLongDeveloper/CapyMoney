@@ -444,13 +444,48 @@ class DichVuSupabase {
 
   /// Thêm giao dịch mới (Chi tiêu hoặc Thu nhập)
   static Future<GiaoDichModel> themGiaoDich(GiaoDichModel model) async {
+    final Map<String, dynamic> data = model.toJson();
+    if (data['id'] == null || (data['id'] as String).isEmpty) {
+      data.remove('id');
+    }
+
     final response = await client
         .from(DuongDanApi.bangGiaoDich)
-        .insert(model.toJson())
+        .insert(data)
         .select()
         .single();
 
     return GiaoDichModel.fromJson(response);
+  }
+
+  /// Tải ảnh hóa đơn chứng từ lên Storage Bucket 'hoa_don'
+  static Future<String?> taiHoaDonLenStorage(XFile xFile, String userId) async {
+    if (userId.isEmpty) return null;
+
+    try {
+      final bytes = await xFile.readAsBytes();
+      String fileExt = xFile.name.contains('.') ? xFile.name.split('.').last.toLowerCase() : 'jpeg';
+      if (fileExt == 'jpg') fileExt = 'jpeg';
+
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final filePath = '$userId/hoadon_$timestamp.$fileExt';
+      final mimeType = 'image/$fileExt';
+
+      await client.storage.from(DuongDanApi.thapHoaDon).uploadBinary(
+        filePath,
+        bytes,
+        fileOptions: FileOptions(
+          upsert: true,
+          contentType: mimeType,
+        ),
+      );
+
+      final publicUrl = client.storage.from(DuongDanApi.thapHoaDon).getPublicUrl(filePath);
+      return publicUrl;
+    } catch (e) {
+      debugPrint('Lỗi upload hóa đơn Storage: $e');
+      return null;
+    }
   }
 
   // ==========================================
