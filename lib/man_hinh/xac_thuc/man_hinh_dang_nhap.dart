@@ -16,8 +16,8 @@ import '../dieu_huong/man_hinh_chinh_tab.dart';
 
 /// Màn hình Đăng Nhập Hệ Thống (Capy Money Login Screen)
 /// 
-/// Hỗ trợ Đăng nhập bằng Email/Mật khẩu, Đăng nhập Google OAuth, Đăng nhập Sinh trắc học Vân tay/Khuôn mặt 
-/// và hiển thị Thẻ Avatar Profile Badge của tài khoản gần nhất.
+/// Hỗ trợ Đăng nhập bằng Email/Mật khẩu, Đăng nhập Google OAuth, Đăng nhập Vân tay
+/// và Thẻ Avatar Profile Badge thông minh của tài khoản đã đăng nhập gần nhất.
 class ManHinhDangNhap extends StatefulWidget {
   const ManHinhDangNhap({super.key});
 
@@ -26,25 +26,13 @@ class ManHinhDangNhap extends StatefulWidget {
 }
 
 class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
-  /// Bộ điều khiển ô nhập Email
   final _emailController = TextEditingController();
-
-  /// Bộ điều khiển ô nhập Mật khẩu
   final _matKhauController = TextEditingController();
-
-  /// Đối tượng xác thực sinh trắc học LocalAuthentication
   final LocalAuthentication _authSinhTracHoc = LocalAuthentication();
-
-  /// Lắng nghe luồng trạng thái đăng nhập Auth
   late final StreamSubscription<AuthState> _authSubscription;
 
-  /// Trạng thái ẩn/hiện mật khẩu
   bool _anMatKhau = true;
-
-  /// Cờ tích chọn "Ghi nhớ đăng nhập"
   bool _ghiNhoDangNhap = false;
-
-  /// Trạng thái đang gửi yêu cầu xác thực
   bool _dangXuLy = false;
 
   /// Tên người dùng đã đăng nhập lần gần đây nhất
@@ -56,7 +44,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
   /// URL Avatar người dùng đã đăng nhập lần gần đây nhất
   String? _anhDaDangNhapLanCuoi;
 
-  /// Cờ bấm "Đổi tài khoản" để mở form nhập Email khác
+  /// Cờ bấm "Đổi tài khoản" để mở form nhập Email mới
   bool _hienFormNhapEmailKhac = false;
 
   @override
@@ -66,14 +54,11 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
     _langNgheThayDoiPhienDangNhap();
   }
 
-  /// Lắng nghe sự kiện đăng nhập trực tiếp từ Supabase Auth (Dùng cho Google OAuth Callback)
   void _langNgheThayDoiPhienDangNhap() {
     _authSubscription = DichVuSupabase.onAuthStateChange.listen((data) async {
       final session = data.session;
       final event = data.event;
-      // Khi người dùng vừa đăng nhập thành công bằng Google OAuth
       if (session != null && mounted && event == AuthChangeEvent.signedIn) {
-        // Tự động đồng bộ Tên và Avatar từ Google vào Supabase CSDL
         final ndModel = await DichVuSupabase.dongBoThongTinNguoiDungGoogle();
         final prefs = await SharedPreferences.getInstance();
         if (ndModel != null) {
@@ -96,20 +81,17 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
     final prefs = await SharedPreferences.getInstance();
     final emailDaLuu = prefs.getString('capymoney_ghi_nho_email') ?? '';
     final emailLanCuoi = prefs.getString('capymoney_da_dang_nhap_lan_cuoi_email') ?? emailDaLuu;
-    String tenLanCuoi = prefs.getString('capymoney_da_dang_nhap_lan_cuoi_ten') ?? 'Nguyễn Hải Đăng';
+    String tenLanCuoi = prefs.getString('capymoney_da_dang_nhap_lan_cuoi_ten') ?? 'Chủ tài khoản';
     String? anhLanCuoi = prefs.getString('capymoney_da_dang_nhap_lan_cuoi_anh');
 
-    // 1. Luôn xóa trống ô nhập Mật khẩu khi mở màn hình Đăng nhập
     _matKhauController.clear();
 
-    // 2. Hủy session cũ nếu không ở chế độ tự động vào app
     if (DichVuSupabase.nguoiDungHienTai != null) {
       try {
         await DichVuSupabase.dangXuat();
       } catch (_) {}
     }
 
-    // 3. Nạp thông tin Tên & Avatar mới nhất trực tiếp từ Service CSDL Supabase
     if (emailLanCuoi.isNotEmpty) {
       try {
         final ndModel = await DichVuSupabase.layThongTinNguoiDungTheoEmail(emailLanCuoi);
@@ -130,7 +112,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
 
     if (mounted) {
       setState(() {
-        _ghiNhoDangNhap = false; // Mặc định trả checkbox Ghi nhớ đăng nhập về false
+        _ghiNhoDangNhap = prefs.getBool('capymoney_ghi_nho_trang_thai') ?? false;
         _emailDaDangNhapLanCuoi = emailLanCuoi;
         _tenDaDangNhapLanCuoi = tenLanCuoi;
         _anhDaDangNhapLanCuoi = anhLanCuoi;
@@ -142,7 +124,6 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
     }
   }
 
-  /// Lưu hoặc dọn dẹp thông tin đăng nhập trong SharedPreferences
   Future<void> _luuThongTinGhiNho(String email, String matKhau) async {
     final prefs = await SharedPreferences.getInstance();
     final emailKey = email.toLowerCase().trim();
@@ -160,7 +141,6 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
     }
   }
 
-  /// Thao tác Đăng nhập bằng Email & Mật khẩu qua Supabase Auth API
   Future<void> _xuLyDangNhap() async {
     final email = _emailController.text.trim().isNotEmpty
         ? _emailController.text.trim()
@@ -168,7 +148,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
     final matKhau = _matKhauController.text.trim();
 
     if (email.isEmpty || matKhau.isEmpty) {
-      _hienThongBao('Vui lòng nhập đầy đủ Mật khẩu bảo mật');
+      _hienThongBao('Vui lòng nhập đầy đủ Email và Mật khẩu');
       return;
     }
 
@@ -191,7 +171,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
       final msg = e.message.toLowerCase();
 
       if (msg.contains('email not confirmed')) {
-        _hienThongBao('Gmail chưa được xác nhận. Vui lòng mở Gmail để kích hoạt tài khoản trước khi đăng nhập!');
+        _hienThongBao('Gmail chưa được xác nhận. Vui lòng kiểm tra Gmail để kích hoạt tài khoản!');
       } else if (msg.contains('invalid login credentials')) {
         _hienThongBao('Email hoặc Mật khẩu không chính xác. Vui lòng kiểm tra lại!');
       } else {
@@ -205,7 +185,6 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
     }
   }
 
-  /// Thao tác Đăng nhập bằng Google OAuth
   Future<void> _xuLyDangNhapGoogle() async {
     setState(() => _dangXuLy = true);
     try {
@@ -219,7 +198,6 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
     }
   }
 
-  /// Thao tác Đăng nhập bằng Vân tay / Sinh trắc học (Biometric Authentication)
   Future<void> _xuLyDangNhapVanTay() async {
     final emailTarget = (_emailController.text.trim().isNotEmpty
             ? _emailController.text.trim()
@@ -228,16 +206,15 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
         .trim();
 
     if (emailTarget.isEmpty) {
-      _hienThongBao('Vui lòng chọn hoặc nhập Email tài khoản trước khi đăng nhập vân tay!');
+      _hienThongBao('Vui lòng nhập Email tài khoản trước khi quét vân tay');
       return;
     }
 
     final prefs = await SharedPreferences.getInstance();
     final bool isVanTayEnabled = prefs.getBool('capymoney_van_tay_bat_$emailTarget') ?? false;
 
-    // RÀNG BUỘC: Nếu chưa bật tính năng vân tay trong màn hình "Tôi" -> BÁO LỖI VÀ CHẶN
     if (!isVanTayEnabled) {
-      _hienThongBao('Tài khoản "$emailTarget" chưa kích hoạt đăng nhập bằng vân tay. Vui lòng bật tính năng này trong màn hình "Tôi"!');
+      _hienThongBao('Tài khoản "$emailTarget" chưa bật Vân tay. Vui lòng đăng nhập Mật khẩu và kích hoạt trong màn hình "Tôi"!');
       return;
     }
 
@@ -246,12 +223,12 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
       final isSupported = await _authSinhTracHoc.isDeviceSupported();
 
       if (!canCheck && !isSupported) {
-        _hienThongBao('Thiết bị hoặc trình duyệt chưa cài đặt bảo mật Vân tay / Khuôn mặt');
+        _hienThongBao('Thiết bị chưa cài đặt bảo mật Vân tay / Khuôn mặt');
         return;
       }
 
       final xacThucThanhCong = await _authSinhTracHoc.authenticate(
-        localizedReason: 'Xác thực Vân tay / Khuôn mặt cho tài khoản $emailTarget',
+        localizedReason: 'Xác thực Vân tay đăng nhập Capy Money',
         options: const AuthenticationOptions(
           biometricOnly: true,
           stickyAuth: true,
@@ -260,8 +237,6 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
 
       if (xacThucThanhCong && mounted) {
         setState(() => _dangXuLy = true);
-
-        // Lấy mật khẩu đã lưu từ trước để xác thực chính thức với Supabase Auth
         final matKhauDaLuu = prefs.getString('capymoney_van_tay_mat_khau_$emailTarget') ??
             _matKhauController.text.trim();
 
@@ -288,21 +263,19 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
       }
     } catch (e) {
       if (mounted) {
-        _hienThongBao('Không thể xác thực sinh trắc học. Vui lòng đăng nhập bằng Mật khẩu!');
+        _hienThongBao('Không thể xác thực sinh trắc học. Vui lòng đăng nhập Mật khẩu!');
       }
     } finally {
       if (mounted) setState(() => _dangXuLy = false);
     }
   }
 
-  /// Hàm điều hướng dự phòng vào thẳng Dashboard khi ở chế độ Offline/Demo
   void _chuyenVaoDashboardDemo() {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const ManHinhChinhTab()),
     );
   }
 
-  /// Hàm hỗ trợ hiển thị SnackBar thông báo ngắn
   void _hienThongBao(String noiDung) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -323,7 +296,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
 
   @override
   Widget build(BuildContext context) {
-    // Kiểm tra có hiển thị Thẻ Profile Badge của tài khoản gần nhất hay không
+    // Cờ kiểm tra hiển thị Thẻ Profile Badge hay Form nhập Email mới
     final bool hienProfileBadge = _emailDaDangNhapLanCuoi.isNotEmpty && !_hienFormNhapEmailKhac;
 
     return Scaffold(
@@ -335,94 +308,111 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: KhoangCach.phatChuan),
+                const SizedBox(height: KhoangCach.vua),
 
-                // SECTION 1: HEADER NÚT CHUYỂN ĐỔI TÀI KHOẢN VÀ STATUS BADGE
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                // TOP HEADER: BADGE "⚡ Đăng nhập tài khoản" CĂN GIỮA VÀ NÚT "Đổi tài khoản" NẰM BÊN PHẢI
+                Stack(
+                  alignment: Alignment.center,
                   children: [
+                    // Badge "⚡ Đăng nhập tài khoản" căn giữa chính xác Center
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: MauSac.chuDao,
+                          borderRadius: BoGoc.borderTron,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(Icons.bolt_rounded, color: Colors.black, size: 16),
+                            SizedBox(width: 4),
+                            Text(
+                              'Đăng nhập tài khoản',
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // Nút "Đổi tài khoản" tách biệt nằm BÊN PHẢI (Chỉ hiển thị khi có Thẻ Avatar Profile Badge)
                     if (hienProfileBadge)
-                      TextButton.icon(
-                        onPressed: () {
-                          setState(() {
-                            _hienFormNhapEmailKhac = true;
-                            _emailController.clear();
-                          });
-                        },
-                        icon: const Icon(Icons.swap_horiz_rounded, color: MauSac.chuDao, size: 18),
-                        label: const Text(
-                          'Đổi tài khoản',
-                          style: TextStyle(
-                            color: MauSac.chuDao,
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
+                      Positioned(
+                        right: 0,
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _hienFormNhapEmailKhac = true;
+                              _emailController.clear();
+                            });
+                          },
+                          child: Row(
+                            children: const [
+                              Icon(Icons.swap_horiz_rounded, color: MauSac.chuDao, size: 16),
+                              SizedBox(width: 4),
+                              Text(
+                                'Đổi tài khoản',
+                                style: TextStyle(
+                                  color: MauSac.chuDao,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       )
                     else if (_hienFormNhapEmailKhac)
-                      TextButton.icon(
-                        onPressed: () {
-                          setState(() {
-                            _hienFormNhapEmailKhac = false;
-                            _emailController.text = _emailDaDangNhapLanCuoi;
-                          });
-                        },
-                        icon: const Icon(Icons.arrow_back_rounded, color: MauSac.chuPhu, size: 16),
-                        label: const Text(
-                          'Quay lại',
-                          style: TextStyle(color: MauSac.chuPhu, fontSize: 13),
-                        ),
-                      )
-                    else
-                      const SizedBox(),
-
-                    // Badge góc phải: SECURE SSL
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: MauSac.nenNoi,
-                        borderRadius: BoGoc.borderTron,
-                        border: Border.all(color: MauSac.duongVienNhat),
-                      ),
-                      child: Row(
-                        children: const [
-                          Icon(Icons.shield_outlined, color: MauSac.chuDao, size: 12),
-                          SizedBox(width: 4),
-                          Text(
-                            'SECURE SSL',
-                            style: TextStyle(
-                              color: MauSac.chuPhu,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
+                      Positioned(
+                        right: 0,
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _hienFormNhapEmailKhac = false;
+                              _emailController.text = _emailDaDangNhapLanCuoi;
+                            });
+                          },
+                          child: Row(
+                            children: const [
+                              Icon(Icons.arrow_back_rounded, color: MauSac.chuPhu, size: 14),
+                              SizedBox(width: 4),
+                              Text(
+                                'Quay lại',
+                                style: TextStyle(color: MauSac.chuPhu, fontSize: 12),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
-                    ),
                   ],
                 ),
 
-                const SizedBox(height: KhoangCach.vua),
+                const SizedBox(height: KhoangCach.lon),
 
-                // SECTION 2: CARD LOGO CAPYBARA PHÁT SÁNG NEON MINT
+                // LOGO SÁNG CAPYBARA CÓ ĐỐM XANH TRÊN CÙNG GÓC PHẢI
                 Stack(
                   alignment: Alignment.center,
                   children: [
                     Container(
-                      width: 88,
-                      height: 88,
+                      width: 84,
+                      height: 84,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(22),
                         boxShadow: [
                           BoxShadow(
-                            color: MauSac.chuDao.withValues(alpha: 0.3),
-                            blurRadius: 20,
+                            color: MauSac.chuDao.withValues(alpha: 0.25),
+                            blurRadius: 18,
                             spreadRadius: 2,
                           ),
                         ],
                       ),
                       child: Container(
-                        padding: const EdgeInsets.all(3),
+                        padding: const EdgeInsets.all(2.5),
                         decoration: BoxDecoration(
                           color: MauSac.chuDao,
                           borderRadius: BorderRadius.circular(20),
@@ -431,14 +421,14 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
                           borderRadius: BorderRadius.circular(17),
                           child: Image.asset(
                             HinhAnh.logoCapy,
-                            width: 82,
-                            height: 82,
+                            width: 78,
+                            height: 78,
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) => Container(
                               color: MauSac.nenNoi,
                               child: const Icon(
                                 BieuTuong.capybaraThantai,
-                                size: 48,
+                                size: 44,
                                 color: MauSac.canhBao,
                               ),
                             ),
@@ -447,8 +437,8 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
                       ),
                     ),
                     Positioned(
-                      top: 2,
-                      right: 2,
+                      top: 0,
+                      right: 0,
                       child: Container(
                         width: 14,
                         height: 14,
@@ -464,7 +454,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
 
                 const SizedBox(height: KhoangCach.vua),
 
-                // SECTION 3: TIÊU ĐỀ VA SLOGAN CHÀO MỪNG
+                // CAPY MONEY V2.4 TIÊU ĐỀ
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -533,9 +523,9 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
 
                 const SizedBox(height: KhoangCach.lon),
 
-                // SECTION 4: THẺ AVATAR PROFILE BADGE HOẶC FORM NHẬP EMAIL MỚI
+                // THẺ AVATAR PROFILE BADGE LẦN ĐĂNG NHẬP GẦN NHẤT HOẶC Ô NHẬP EMAIL
                 if (hienProfileBadge)
-                  // Thẻ Avatar + Họ tên tài khoản gần nhất
+                  // Thẻ Avatar + Họ tên + Gmail đã đăng nhập lần gần nhất
                   Container(
                     padding: KhoangCach.lToanBoChuan,
                     decoration: BoxDecoration(
@@ -610,13 +600,22 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
                     ),
                   )
                 else
-                  // Ô nhập địa chỉ Email mới
+                  // Form nhập địa chỉ Email mới
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Địa chỉ Email (Gmail)',
-                        style: TextStyle(color: MauSac.chuChinh, fontSize: 13, fontWeight: FontWeight.w600),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: const [
+                          Text(
+                            'Địa chỉ Email (Gmail)',
+                            style: TextStyle(color: MauSac.chuChinh, fontSize: 13, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            'Bắt buộc',
+                            style: TextStyle(color: MauSac.chuPhu, fontSize: 11),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 6),
                       TextField(
@@ -624,12 +623,12 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
                         keyboardType: TextInputType.emailAddress,
                         style: const TextStyle(color: MauSac.chuChinh, fontSize: 14),
                         decoration: InputDecoration(
-                          hintText: 'example@gmail.com',
+                          hintText: 'example@example.com',
                           hintStyle: const TextStyle(color: MauSac.chuMo),
-                          prefixIcon: const Icon(Icons.email_outlined, color: MauSac.chuPhu, size: 20),
+                          prefixIcon: const Icon(Icons.alternate_email_rounded, color: MauSac.chuPhu, size: 20),
                           filled: true,
                           fillColor: MauSac.nenThe,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           border: OutlineInputBorder(
                             borderRadius: BoGoc.borderVua,
                             borderSide: const BorderSide(color: MauSac.duongVienNhat),
@@ -649,13 +648,28 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
 
                 const SizedBox(height: KhoangCach.phatChuan),
 
-                // SECTION 5: Ô NHẬP MẬT KHẨU
+                // FORM FIELD MẬT KHẨU BẢO MẬT
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Mật khẩu bảo mật',
-                      style: TextStyle(color: MauSac.chuChinh, fontSize: 13, fontWeight: FontWeight.w600),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: const [
+                        Text(
+                          'Mật khẩu bảo mật',
+                          style: TextStyle(color: MauSac.chuChinh, fontSize: 13, fontWeight: FontWeight.bold),
+                        ),
+                        Row(
+                          children: [
+                            Icon(Icons.shield_outlined, color: MauSac.chuDao, size: 12),
+                            SizedBox(width: 4),
+                            Text(
+                              'Mã hóa 256-bit',
+                              style: TextStyle(color: MauSac.chuPhu, fontSize: 11),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 6),
                     TextField(
@@ -676,7 +690,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
                         ),
                         filled: true,
                         fillColor: MauSac.nenThe,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         border: OutlineInputBorder(
                           borderRadius: BoGoc.borderVua,
                           borderSide: const BorderSide(color: MauSac.duongVienNhat),
@@ -696,7 +710,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
 
                 const SizedBox(height: KhoangCach.vua),
 
-                // SECTION 6: CHECKBOX GHI NHỚ VÀ LINK QUÊN MẬT KHẨU
+                // ROW GHI NHỚ ĐĂNG NHẬP VÀ QUÊN MẬT KHẨU
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -705,11 +719,11 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
                       child: Row(
                         children: [
                           Container(
-                            width: 20,
-                            height: 20,
+                            width: 22,
+                            height: 22,
                             decoration: BoxDecoration(
                               color: _ghiNhoDangNhap ? MauSac.chuDao : Colors.transparent,
-                              borderRadius: BorderRadius.circular(6),
+                              borderRadius: BorderRadius.circular(11),
                               border: Border.all(
                                 color: _ghiNhoDangNhap ? MauSac.chuDao : MauSac.chuPhu,
                               ),
@@ -721,7 +735,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
                           const SizedBox(width: 8),
                           const Text(
                             'Ghi nhớ đăng nhập',
-                            style: TextStyle(color: MauSac.chuPhu, fontSize: 13),
+                            style: TextStyle(color: MauSac.chuChinh, fontSize: 13),
                           ),
                         ],
                       ),
@@ -739,7 +753,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
                         style: TextStyle(
                           color: MauSac.chuDao,
                           fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
@@ -748,7 +762,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
 
                 const SizedBox(height: KhoangCach.lon),
 
-                // SECTION 7: NÚT ĐĂNG NHẬP CHÍNH VÀ NÚT ĐĂNG NHẬP VÂN TAY
+                // CỤM NÚT ĐĂNG NHẬP VÀ VÂN TAY
                 Row(
                   children: [
                     Expanded(
@@ -761,7 +775,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
                             foregroundColor: Colors.black,
                             elevation: 0,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BoGoc.borderVua,
+                              borderRadius: BoGoc.borderTron,
                             ),
                           ),
                           child: _dangXuLy
@@ -794,7 +808,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
 
                     const SizedBox(width: 12),
 
-                    // Nút quét Vân tay / Khuôn mặt (Biometric Button)
+                    // Nút quét Vân tay
                     SizedBox(
                       width: 52,
                       height: 52,
@@ -820,9 +834,26 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
                   ],
                 ),
 
-                const SizedBox(height: KhoangCach.phatChuan),
+                const SizedBox(height: KhoangCach.lon),
 
-                // SECTION 8: NÚT ĐĂNG NHẬP BẰNG GOOGLE OAUTH
+                // DIVIDER "Hoặc tiếp tục với"
+                Row(
+                  children: [
+                    const Expanded(child: Divider(color: MauSac.duongVienNhat)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(
+                        'Hoặc tiếp tục với',
+                        style: TextStyle(color: MauSac.chuPhu, fontSize: 12),
+                      ),
+                    ),
+                    const Expanded(child: Divider(color: MauSac.duongVienNhat)),
+                  ],
+                ),
+
+                const SizedBox(height: KhoangCach.lon),
+
+                // NÚT ĐĂNG NHẬP GOOGLE OAUTH
                 SizedBox(
                   width: double.infinity,
                   height: 50,
@@ -852,7 +883,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
                           style: TextStyle(
                             color: MauSac.chuChinh,
                             fontSize: 14,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
@@ -862,7 +893,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
 
                 const SizedBox(height: KhoangCach.sieuLon),
 
-                // SECTION 9: LINK CHUYỂN SANG TRANG ĐĂNG KÝ
+                // FOOTER: Chưa có tài khoản? Đăng ký ngay
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
