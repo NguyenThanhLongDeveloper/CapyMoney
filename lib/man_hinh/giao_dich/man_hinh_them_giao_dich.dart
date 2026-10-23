@@ -552,7 +552,7 @@ class _ManHinhThemGiaoDichState extends State<ManHinhThemGiaoDich> {
                           // Thêm viền bo và màu nền cho cả khung lớn bên ngoài
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? (isChiTieu ? MauSac.chiTieu.withOpacity(0.15) : MauSac.chuDao.withOpacity(0.15))
+                                ? (isChiTieu ? MauSac.chiTieu.withValues(alpha: 0.15) : MauSac.chuDao.withValues(alpha: 0.15))
                                 : MauSac.nenThe, // Màu nền thẻ khi chọn/không chọn
                             borderRadius: BoGoc.borderVua,
                             border: Border.all(

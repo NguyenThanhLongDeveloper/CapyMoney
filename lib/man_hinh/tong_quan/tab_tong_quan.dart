@@ -144,10 +144,10 @@ class _TabTongQuanState extends State<TabTongQuan> {
           : TaiKhoanNganHangModel(
               id: '',
               nguoiDungId: '',
-              tenNganHang: 'VCB',
-              soTaiKhoan: '8912',
-              tenChuTaiKhoan: 'TRAN THI MAI',
-              soDu: 84520000.0,
+              tenNganHang: '',
+              soTaiKhoan: '',
+              tenChuTaiKhoan: '',
+              soDu: 0,
             ),
     );
 

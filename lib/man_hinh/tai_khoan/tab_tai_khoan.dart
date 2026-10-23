@@ -561,6 +561,53 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: MauSac.nenChinh,
+      appBar: AppBar(
+        backgroundColor: MauSac.nenChinh,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        title: Row(
+          children: [
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: MauSac.nenNoi,
+              child: ClipOval(
+                child: Image.asset(
+                  HinhAnh.logoCapy,
+                  width: 36,
+                  height: 36,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => const Icon(
+                    BieuTuong.capybaraThantai,
+                    size: 22,
+                    color: MauSac.canhBao,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  'Capy Money',
+                  style: TextStyle(
+                    color: MauSac.chuChinh,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  'Tôi',
+                  style: TextStyle(
+                    color: MauSac.chuPhu,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
       body: SafeArea(
         child: DapUng.bocKhungNoiDung(
           child: SingleChildScrollView(
@@ -568,54 +615,7 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: KhoangCach.phatChuan),
-
-                // SECTION 1: HEADER BAR LOGO CAPY MONEY (TÔI) VA BELL NOTIFICATION
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: Image.asset(
-                            HinhAnh.logoCapy,
-                            width: 36,
-                            height: 36,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => Container(
-                              width: 36,
-                              height: 36,
-                              color: MauSac.nenNoi,
-                              child: const Icon(BieuTuong.capybaraThantai, color: MauSac.canhBao, size: 20),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text(
-                              'Capy Money',
-                              style: TextStyle(
-                                color: MauSac.chuChinh,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              'Tôi',
-                              style: TextStyle(
-                                color: MauSac.chuPhu,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                const SizedBox(height: KhoangCach.nho),
 
                 const SizedBox(height: KhoangCach.lon),
 

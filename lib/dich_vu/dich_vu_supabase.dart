@@ -442,20 +442,48 @@ class DichVuSupabase {
     return (response as List).map((e) => GiaoDichModel.fromJson(e)).toList();
   }
 
-  /// Thêm giao dịch mới (Chi tiêu hoặc Thu nhập)
+  /// Thêm giao dịch mới (Chi tiêu hoặc Thu nhập) và tự động cập nhật số dư ví liên kết
   static Future<GiaoDichModel> themGiaoDich(GiaoDichModel model) async {
     final Map<String, dynamic> data = model.toJson();
     if (data['id'] == null || (data['id'] as String).isEmpty) {
       data.remove('id');
     }
 
+    // 1. Thêm bản ghi giao dịch mới vào CSDL
     final response = await client
         .from(DuongDanApi.bangGiaoDich)
         .insert(data)
         .select()
         .single();
 
-    return GiaoDichModel.fromJson(response);
+    final giaoDichMoi = GiaoDichModel.fromJson(response);
+
+    // 2. Tự động cộng/trừ số dư (so_du) trong bảng tai_khoan_ngan_hang
+    if (model.taiKhoanId != null && model.taiKhoanId!.isNotEmpty) {
+      try {
+        final tkRes = await client
+            .from(DuongDanApi.bangTaiKhoanNganHang)
+            .select('so_du')
+            .eq('id', model.taiKhoanId!)
+            .maybeSingle();
+
+        if (tkRes != null) {
+          final double soDuHienTai = (tkRes['so_du'] as num?)?.toDouble() ?? 0.0;
+          final double soDuMoi = model.loaiGiaoDich == 'thu_nhap'
+              ? soDuHienTai + model.soTien
+              : soDuHienTai - model.soTien;
+
+          await client
+              .from(DuongDanApi.bangTaiKhoanNganHang)
+              .update({'so_du': soDuMoi})
+              .eq('id', model.taiKhoanId!);
+        }
+      } catch (e) {
+        debugPrint('Lỗi tự động cập nhật số dư tài khoản: $e');
+      }
+    }
+
+    return giaoDichMoi;
   }
 
   /// Tải ảnh hóa đơn chứng từ lên Storage Bucket 'hoa_don'
