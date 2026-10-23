@@ -72,13 +72,15 @@ class _TabTongQuanState extends State<TabTongQuan> {
           _danhSachVi = viList;
           _danhSachGiaoDich = giaoDichList;
 
-          // Tính tổng tài sản khả dụng từ danh sách ví CSDL
+          // Lấy số dư tài khoản ngân hàng mặc định (la_nhan_chinh == true)
           if (viList.isNotEmpty) {
-            double tongSoDu = 0;
-            for (var vi in viList) {
-              tongSoDu += vi.soDu;
-            }
-            if (tongSoDu > 0) _tongTaiSan = tongSoDu;
+            final viMacDinh = viList.firstWhere(
+              (vi) => vi.laNhanChinh,
+              orElse: () => viList.first,
+            );
+            _tongTaiSan = viMacDinh.soDu;
+          } else {
+            _tongTaiSan = 0.0;
           }
 
           // Tính thu nhập và chi tiêu tháng này từ danh sách giao dịch
@@ -135,12 +137,26 @@ class _TabTongQuanState extends State<TabTongQuan> {
 
   @override
   Widget build(BuildContext context) {
-    final String tenChuTaiKhoan = (_danhSachVi.isNotEmpty && _danhSachVi.first.tenChuTaiKhoan.isNotEmpty)
-        ? _danhSachVi.first.tenChuTaiKhoan.toUpperCase()
+    final viMacDinh = _danhSachVi.firstWhere(
+      (vi) => vi.laNhanChinh,
+      orElse: () => _danhSachVi.isNotEmpty
+          ? _danhSachVi.first
+          : TaiKhoanNganHangModel(
+              id: '',
+              nguoiDungId: '',
+              tenNganHang: 'VCB',
+              soTaiKhoan: '8912',
+              tenChuTaiKhoan: 'TRAN THI MAI',
+              soDu: 84520000.0,
+            ),
+    );
+
+    final String tenChuTaiKhoan = viMacDinh.tenChuTaiKhoan.isNotEmpty
+        ? viMacDinh.tenChuTaiKhoan.toUpperCase()
         : 'TRAN THI MAI';
 
-    final String tenViPrimary = _danhSachVi.isNotEmpty
-        ? '${_danhSachVi.first.tenNganHang} • • • • ${_danhSachVi.first.soTaiKhoan.length >= 4 ? _danhSachVi.first.soTaiKhoan.substring(_danhSachVi.first.soTaiKhoan.length - 4) : "8912"}'
+    final String tenViPrimary = viMacDinh.soTaiKhoan.isNotEmpty
+        ? '${viMacDinh.tenNganHang} • • • • ${viMacDinh.soTaiKhoan.length >= 4 ? viMacDinh.soTaiKhoan.substring(viMacDinh.soTaiKhoan.length - 4) : viMacDinh.soTaiKhoan}'
         : 'VCB • • • • 8912';
 
     return Scaffold(
@@ -262,9 +278,9 @@ class _TabTongQuanState extends State<TabTongQuan> {
 
                         const SizedBox(height: 16),
 
-                        // Hàng 3: Thẻ Ví VCB + Tên chủ tài khoản
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        // Hàng 3: Thẻ Ví VCB + Tên chủ tài khoản (Sắp xếp theo cột dọc)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start, // Canh lề trái (hoặc dùng CrossAxisAlignment.center nếu muốn căn giữa)
                           children: [
                             Row(
                               children: [
@@ -280,6 +296,7 @@ class _TabTongQuanState extends State<TabTongQuan> {
                                 ),
                               ],
                             ),
+                            const SizedBox(height: 4), // Khoảng cách giữa tên ví và tên chủ tài khoản
                             Text(
                               tenChuTaiKhoan,
                               style: const TextStyle(
