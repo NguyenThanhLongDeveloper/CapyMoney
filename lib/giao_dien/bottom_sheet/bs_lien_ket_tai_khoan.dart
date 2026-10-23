@@ -48,7 +48,7 @@ class _BsLienKetTaiKhoanState extends State<BsLienKetTaiKhoan> {
     'Techcombank',
     'Ví Điện Tử MoMo',
     'VPBank Digital',
-    'BIDV',
+    'TP Bank',
   ];
 
   /// Danh sách các nguồn tài khoản thực tế lấy từ Supabase CSDL
@@ -348,7 +348,7 @@ class _BsLienKetTaiKhoanState extends State<BsLienKetTaiKhoan> {
                             child: GestureDetector(
                               onTap: () => _datLamNhanChinh(tk.id),
                               child: Text(
-                                tk.laNhanChinh ? '● Đã làm nhận chính' : 'Đặt làm nhận chính',
+                                tk.laNhanChinh ? '● Tài khoản chính' : 'Đặt làm tài khoản chính',
                                 style: TextStyle(
                                   color: tk.laNhanChinh ? MauSac.chuDao : MauSac.phu,
                                   fontSize: 12,
@@ -434,7 +434,7 @@ class _BsLienKetTaiKhoanState extends State<BsLienKetTaiKhoan> {
                       controller: _stkController,
                       style: const TextStyle(color: MauSac.chuChinh, fontSize: 14),
                       decoration: InputDecoration(
-                        hintText: '0987654321',
+                        hintText: '09******21',
                         hintStyle: const TextStyle(color: MauSac.chuMo),
                         prefixIcon: const Icon(Icons.numbers_rounded, color: MauSac.chuPhu, size: 18),
                         filled: true,
@@ -464,7 +464,7 @@ class _BsLienKetTaiKhoanState extends State<BsLienKetTaiKhoan> {
                       controller: _tenChuTaiKhoanController,
                       style: const TextStyle(color: MauSac.chuChinh, fontSize: 14),
                       decoration: InputDecoration(
-                        hintText: 'NGUYEN HAI DANG',
+                        hintText: 'NGUYEN VAN A',
                         hintStyle: const TextStyle(color: MauSac.chuMo),
                         prefixIcon: const Icon(Icons.person_outline_rounded, color: MauSac.chuPhu, size: 18),
                         filled: true,

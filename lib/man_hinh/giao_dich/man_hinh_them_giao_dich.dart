@@ -326,17 +326,6 @@ class _ManHinhThemGiaoDichState extends State<ManHinhThemGiaoDich> {
           ),
         ),
         centerTitle: true,
-        actions: [
-          // Avatar góc phải
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: CircleAvatar(
-              radius: 16,
-              backgroundColor: MauSac.nenNoi,
-              child: const Icon(Icons.person_rounded, color: MauSac.chuDao, size: 18),
-            ),
-          ),
-        ],
       ),
       body: SafeArea(
         child: DapUng.bocKhungForm(
@@ -520,7 +509,7 @@ class _ManHinhThemGiaoDichState extends State<ManHinhThemGiaoDich> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      isChiTieu ? 'Danh mục chi tiêu' : 'NGUỒN THU NHẬP',
+                      isChiTieu ? 'Danh mục chi tiêu' : 'Nguồn thu nhập',
                       style: const TextStyle(
                         color: MauSac.chuChinh,
                         fontSize: 14,
@@ -529,15 +518,6 @@ class _ManHinhThemGiaoDichState extends State<ManHinhThemGiaoDich> {
                     ),
                     Row(
                       children: [
-                        if (_danhMucChon != null) ...[
-                          Icon(Icons.circle, color: colorTheme, size: 8),
-                          const SizedBox(width: 4),
-                          Text(
-                            _danhMucChon!.tenDanhMuc,
-                            style: TextStyle(color: colorTheme, fontSize: 12, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(width: 8),
-                        ],
                         Text(
                           '${filteredDanhMuc.length} danh mục',
                           style: const TextStyle(color: MauSac.chuPhu, fontSize: 11),
@@ -559,7 +539,7 @@ class _ManHinhThemGiaoDichState extends State<ManHinhThemGiaoDich> {
                       crossAxisCount: 4,
                       mainAxisSpacing: 10,
                       crossAxisSpacing: 10,
-                      childAspectRatio: 0.95,
+                      childAspectRatio: 0.85,
                     ),
                     itemCount: filteredDanhMuc.length,
                     itemBuilder: (context, index) {
@@ -569,29 +549,44 @@ class _ManHinhThemGiaoDichState extends State<ManHinhThemGiaoDich> {
                       return GestureDetector(
                         onTap: () => setState(() => _danhMucChon = dm),
                         child: Container(
+                          // Thêm viền bo và màu nền cho cả khung lớn bên ngoài
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? (isChiTieu ? MauSac.nenThe : MauSac.chuDao)
-                                : MauSac.nenThe,
+                                ? (isChiTieu ? MauSac.chiTieu.withOpacity(0.15) : MauSac.chuDao.withOpacity(0.15))
+                                : MauSac.nenThe, // Màu nền thẻ khi chọn/không chọn
                             borderRadius: BoGoc.borderVua,
                             border: Border.all(
-                              color: isSelected ? colorTheme : MauSac.duongVienNhat,
-                              width: isSelected ? 2 : 1,
+                              color: isSelected
+                                  ? (isChiTieu ? MauSac.chiTieu : MauSac.chuDao)
+                                  : MauSac.duongVienNhat, // Viền ngoài đổi màu khi được chọn
+                              width: isSelected ? 1.5 : 1,
                             ),
                           ),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(
-                                _layIconData(dm.bieuTuong),
-                                color: isSelected
-                                    ? (isChiTieu ? MauSac.chiTieu : Colors.black)
-                                    : MauSac.chuPhu,
-                                size: 22,
+                              // Ô vuông chứa Icon bên trên
+                              Container(
+                                width: 42,
+                                height: 42,
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? (isChiTieu ? MauSac.chiTieu : MauSac.chuDao)
+                                      : MauSac.nenThe,
+                                  borderRadius: BoGoc.borderNho,
+                                ),
+                                child: Icon(
+                                  _layIconData(dm.bieuTuong),
+                                  color: isSelected
+                                      ? Colors.black
+                                      : MauSac.chuPhu,
+                                  size: 20,
+                                ),
                               ),
                               const SizedBox(height: 6),
+                              // Tên danh mục bên dưới
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                padding: const EdgeInsets.symmetric(horizontal: 2),
                                 child: Text(
                                   dm.tenDanhMuc,
                                   textAlign: TextAlign.center,
@@ -599,7 +594,7 @@ class _ManHinhThemGiaoDichState extends State<ManHinhThemGiaoDich> {
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     color: isSelected
-                                        ? (isChiTieu ? MauSac.chiTieu : Colors.black)
+                                        ? Colors.white
                                         : MauSac.chuPhu,
                                     fontSize: 11,
                                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
@@ -1004,8 +999,8 @@ class _ManHinhThemGiaoDichState extends State<ManHinhThemGiaoDich> {
                               FittedBox(
                                 child: Text(
                                   isChiTieu
-                                      ? '✔ Lưu giao dịch này'
-                                      : '✔ + Ghi nhận khoản thu này',
+                                      ? 'Lưu giao dịch này'
+                                      : '+ Ghi nhận khoản thu này',
                                   style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black),
                                 ),
                               ),

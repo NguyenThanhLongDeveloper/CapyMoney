@@ -3,6 +3,7 @@ import '../../giao_dien/chuan_thiet_ke/mau_sac.dart';
 import '../../giao_dien/chuan_thiet_ke/bo_goc.dart';
 import '../../giao_dien/chuan_thiet_ke/bieu_tuong.dart';
 import '../tai_khoan/tab_tai_khoan.dart';
+import '../tong_quan/tab_tong_quan.dart';
 import '../giao_dich/man_hinh_them_giao_dich.dart';
 
 /// Màn hình Cấu trúc Chính (Main Navigation Screen)
@@ -30,12 +31,7 @@ class _ManHinhChinhTabState extends State<ManHinhChinhTab> {
   /// Danh sách các Tab màn hình chính
   final List<Widget> _danhSachTab = [
     // Tab 1: Tổng quan (Dashboard)
-    const Center(
-      child: Text(
-        'Màn hình Tổng quan (Dashboard)',
-        style: TextStyle(color: MauSac.chuChinh, fontSize: 16),
-      ),
-    ),
+    const TabTongQuan(),
 
     // Tab 2: Ngân sách & Mục tiêu
     const Center(

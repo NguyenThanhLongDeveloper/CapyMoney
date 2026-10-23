@@ -614,45 +614,6 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
                         ),
                       ],
                     ),
-
-                    Row(
-                      children: [
-                        // Chuông thông báo
-                        Stack(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: MauSac.nenThe,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: MauSac.duongVienNhat),
-                              ),
-                              child: const Icon(Icons.notifications_none_rounded, color: MauSac.chuChinh, size: 20),
-                            ),
-                            Positioned(
-                              right: 8,
-                              top: 8,
-                              child: Container(
-                                width: 8,
-                                height: 8,
-                                decoration: const BoxDecoration(
-                                  color: MauSac.chuDao,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(width: 10),
-
-                        // Avatar nhỏ góc phải
-                        CircleAvatar(
-                          radius: 18,
-                          backgroundColor: MauSac.nenNoi,
-                          child: const Icon(Icons.person_rounded, color: MauSac.chuDao, size: 20),
-                        ),
-                      ],
-                    ),
                   ],
                 ),
 

@@ -1,0 +1,736 @@
+import 'package:flutter/material.dart';
+import '../../giao_dien/chuan_thiet_ke/mau_sac.dart';
+import '../../giao_dien/chuan_thiet_ke/bo_goc.dart';
+import '../../giao_dien/chuan_thiet_ke/khoang_cach.dart';
+import '../../giao_dien/chuan_thiet_ke/bieu_tuong.dart';
+import '../../giao_dien/chuan_thiet_ke/hinh_anh.dart';
+import '../../giao_dien/chuan_thiet_ke/dap_ung.dart';
+import '../../mo_hinh/giao_dich_model.dart';
+import '../../mo_hinh/tai_khoan_ngan_hang_model.dart';
+import '../../dich_vu/dich_vu_supabase.dart';
+
+/// Tab 1: Màn Hình Tổng Quan Tài Chính (Dashboard Screen)
+/// 
+/// Khớp 100% giao diện mockup: Thẻ Tổng tài sản khả dụng + 👁 Ẩn/Hiện số tiền, 
+/// Thẻ Thu nhập tháng & Chi tiêu tháng, Biểu đồ thanh Chi tiêu tuần này (T2 -> CN),
+/// và Danh sách Giao dịch gần đây.
+class TabTongQuan extends StatefulWidget {
+  const TabTongQuan({super.key});
+
+  @override
+  State<TabTongQuan> createState() => _TabTongQuanState();
+}
+
+class _TabTongQuanState extends State<TabTongQuan> {
+  /// Cờ ẩn/hiện số tiền tài sản
+  bool _anSoTien = false;
+
+  /// Index ngày đang chọn trong tuần (0: T2, 1: T3, ... 4: T6, 5: T7, 6: CN)
+  int _ngayChonIndex = 4; // Mặc định T6
+
+  /// Trạng thái đang tải từ CSDL
+  bool _dangTai = true;
+
+  /// Tổng tài sản khả dụng
+  double _tongTaiSan = 84520000.0;
+
+  /// Thu nhập tháng này
+  double _thuNhapThang = 35000000.0;
+
+  /// Chi tiêu tháng này
+  double _chiTieuThang = 18450000.0;
+
+  /// Chi tiêu tổng tuần này
+  final double _chiTieuTuanNay = 4820000.0;
+
+  /// Mảng chi tiêu 7 ngày trong tuần (T2 -> CN)
+  final List<double> _chiTieuCacNgay = [450000, 820000, 350000, 950000, 1250000, 600000, 400000];
+
+  /// Danh sách tài khoản / ví ngân hàng
+  List<TaiKhoanNganHangModel> _danhSachVi = [];
+
+  /// Danh sách giao dịch gần đây
+  List<GiaoDichModel> _danhSachGiaoDich = [];
+
+  @override
+  void initState() {
+    super.initState();
+    final weekday = DateTime.now().weekday; // 1: T2 -> 7: CN
+    _ngayChonIndex = (weekday - 1) % 7;
+    _loadDuLieuDashboard();
+  }
+
+  /// Nạp dữ liệu thực tế từ CSDL Supabase
+  Future<void> _loadDuLieuDashboard() async {
+    setState(() => _dangTai = true);
+    try {
+      final viList = await DichVuSupabase.layDanhSachTaiKhoan();
+      final giaoDichList = await DichVuSupabase.layDanhSachGiaoDich();
+
+      if (mounted) {
+        setState(() {
+          _danhSachVi = viList;
+          _danhSachGiaoDich = giaoDichList;
+
+          // Tính tổng tài sản khả dụng từ danh sách ví CSDL
+          if (viList.isNotEmpty) {
+            double tongSoDu = 0;
+            for (var vi in viList) {
+              tongSoDu += vi.soDu;
+            }
+            if (tongSoDu > 0) _tongTaiSan = tongSoDu;
+          }
+
+          // Tính thu nhập và chi tiêu tháng này từ danh sách giao dịch
+          final now = DateTime.now();
+          double sumThu = 0;
+          double sumChi = 0;
+
+          for (var gd in giaoDichList) {
+            if (gd.ngayGiaoDich.month == now.month && gd.ngayGiaoDich.year == now.year) {
+              if (gd.loaiGiaoDich == 'thu_nhap') {
+                sumThu += gd.soTien;
+              } else if (gd.loaiGiaoDich == 'chi_tieu') {
+                sumChi += gd.soTien;
+              }
+            }
+          }
+
+          if (sumThu > 0) _thuNhapThang = sumThu;
+          if (sumChi > 0) _chiTieuThang = sumChi;
+
+          _dangTai = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Lỗi nạp Dashboard: $e');
+      if (mounted) setState(() => _dangTai = false);
+    }
+  }
+
+  /// Định dạng tiền VND
+  String _dinhDangTien(double amount) {
+    if (_anSoTien) return '•••••••• đ';
+    final String numStr = amount.toInt().toString();
+    final RegExp reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
+    final String formatted = numStr.replaceAllMapped(reg, (Match m) => '${m[1]}.');
+    return '$formatted đ';
+  }
+
+  /// Tên viết tắt các ngày trong tuần
+  String _layTenNgayShort(int index) {
+    const list = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+    return list[index % 7];
+  }
+
+  /// Tên ngày đầy đủ
+  String _layTenNgayFull(int index) {
+    final weekdayNow = DateTime.now().weekday - 1;
+    final tenDay = _layTenNgayShort(index);
+    if (index == weekdayNow) {
+      return '$tenDay (Hôm nay)';
+    }
+    return tenDay;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final String tenChuTaiKhoan = (_danhSachVi.isNotEmpty && _danhSachVi.first.tenChuTaiKhoan.isNotEmpty)
+        ? _danhSachVi.first.tenChuTaiKhoan.toUpperCase()
+        : 'TRAN THI MAI';
+
+    final String tenViPrimary = _danhSachVi.isNotEmpty
+        ? '${_danhSachVi.first.tenNganHang} • • • • ${_danhSachVi.first.soTaiKhoan.length >= 4 ? _danhSachVi.first.soTaiKhoan.substring(_danhSachVi.first.soTaiKhoan.length - 4) : "8912"}'
+        : 'VCB • • • • 8912';
+
+    return Scaffold(
+      backgroundColor: MauSac.nenChinh,
+      appBar: AppBar(
+        backgroundColor: MauSac.nenChinh,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        title: Row(
+          children: [
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: MauSac.nenNoi,
+              child: ClipOval(
+                child: Image.asset(
+                  HinhAnh.logoCapy,
+                  width: 36,
+                  height: 36,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => const Icon(
+                    BieuTuong.capybaraThantai,
+                    size: 22,
+                    color: MauSac.canhBao,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  'Capy Money',
+                  style: TextStyle(
+                    color: MauSac.chuChinh,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  'Tổng quan',
+                  style: TextStyle(
+                    color: MauSac.chuPhu,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      body: SafeArea(
+        child: DapUng.bocKhungNoiDung(
+          child: RefreshIndicator(
+            onRefresh: _loadDuLieuDashboard,
+            color: MauSac.chuDao,
+            backgroundColor: MauSac.nenThe,
+            child: SingleChildScrollView(
+              padding: KhoangCach.lNgangLon,
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: KhoangCach.nho),
+
+                  // CARD 1: TỔNG TÀI SẢN KHẢ DỤNG
+                  Container(
+                    width: double.infinity,
+                    padding: KhoangCach.lToanBoLon,
+                    decoration: BoxDecoration(
+                      color: MauSac.nenThe,
+                      borderRadius: BoGoc.borderLon,
+                      border: Border.all(color: MauSac.duongVienNhat),
+                      boxShadow: [
+                        BoxShadow(
+                          color: MauSac.chuDao.withValues(alpha: 0.05),
+                          blurRadius: 15,
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Hàng 1: Label + Eye Icon Toggle
+                        Row(
+                          children: [
+                            const Text(
+                              'Tổng tài sản khả dụng',
+                              style: TextStyle(
+                                color: MauSac.chuPhu,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: () => setState(() => _anSoTien = !_anSoTien),
+                              child: Icon(
+                                _anSoTien ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                color: MauSac.chuPhu,
+                                size: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        // Hàng 2: Số tiền tài sản cỡ lớn
+                        Text(
+                          _dinhDangTien(_tongTaiSan),
+                          style: const TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: MauSac.chuChinh,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Hàng 3: Thẻ Ví VCB + Tên chủ tài khoản
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.credit_card_rounded, color: MauSac.chuDao, size: 18),
+                                const SizedBox(width: 6),
+                                Text(
+                                  tenViPrimary,
+                                  style: const TextStyle(
+                                    color: MauSac.chuPhu,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Text(
+                              tenChuTaiKhoan,
+                              style: const TextStyle(
+                                color: MauSac.chuPhu,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: KhoangCach.lon),
+
+                  // CARD 2: HÀNG 2 CỘT (THU NHẬP THÁNG & CHI TIÊU THÁNG)
+                  Row(
+                    children: [
+                      // Thẻ Thu Nhập Tháng
+                      Expanded(
+                        child: Container(
+                          padding: KhoangCach.lToanBoChuan,
+                          decoration: BoxDecoration(
+                            color: MauSac.nenThe,
+                            borderRadius: BoGoc.borderVua,
+                            border: Border.all(color: MauSac.duongVienNhat),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: const [
+                                  Text(
+                                    'THU NHẬP THÁNG',
+                                    style: TextStyle(
+                                      color: MauSac.chuPhu,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  Icon(Icons.arrow_downward_rounded, color: MauSac.thuNhap, size: 16),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              FittedBox(
+                                child: Text(
+                                  _dinhDangTien(_thuNhapThang),
+                                  style: const TextStyle(
+                                    color: MauSac.chuChinh,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(width: 12),
+
+                      // Thẻ Chi Tiêu Tháng
+                      Expanded(
+                        child: Container(
+                          padding: KhoangCach.lToanBoChuan,
+                          decoration: BoxDecoration(
+                            color: MauSac.nenThe,
+                            borderRadius: BoGoc.borderVua,
+                            border: Border.all(color: MauSac.duongVienNhat),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: const [
+                                  Text(
+                                    'CHI TIÊU THÁNG',
+                                    style: TextStyle(
+                                      color: MauSac.chuPhu,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  Icon(Icons.arrow_upward_rounded, color: MauSac.chiTieu, size: 16),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              FittedBox(
+                                child: Text(
+                                  _dinhDangTien(_chiTieuThang),
+                                  style: const TextStyle(
+                                    color: MauSac.chuChinh,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: KhoangCach.lon),
+
+                  // CARD 3: CHI TIÊU TUẦN NÀY (BIỂU ĐỒ BAR CHART T2 -> CN)
+                  Container(
+                    width: double.infinity,
+                    padding: KhoangCach.lToanBoLon,
+                    decoration: BoxDecoration(
+                      color: MauSac.nenThe,
+                      borderRadius: BoGoc.borderLon,
+                      border: Border.all(color: MauSac.duongVienNhat),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Header Biểu đồ
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Chi tiêu tuần này',
+                                  style: TextStyle(
+                                    color: MauSac.chuChinh,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Tổng: ${_dinhDangTien(_chiTieuTuanNay)}',
+                                  style: const TextStyle(color: MauSac.chuPhu, fontSize: 11),
+                                ),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: MauSac.nenNoi,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Text(
+                                'Tuần 43',
+                                style: TextStyle(color: MauSac.chuPhu, fontSize: 11, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: KhoangCach.lon),
+
+                        // Hàng 7 Thanh Cột Bar Chart (T2 -> CN)
+                        SizedBox(
+                          height: 110,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: List.generate(7, (index) {
+                              final bool isSelected = _ngayChonIndex == index;
+                              final double value = _chiTieuCacNgay[index];
+                              const double maxVal = 1500000;
+                              final double barHeight = ((value / maxVal) * 75).clamp(20.0, 75.0);
+
+                              return GestureDetector(
+                                onTap: () => setState(() => _ngayChonIndex = index),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    AnimatedContainer(
+                                      duration: const Duration(milliseconds: 300),
+                                      width: 22,
+                                      height: barHeight,
+                                      decoration: BoxDecoration(
+                                        color: isSelected ? MauSac.chuDao : MauSac.nenNoi,
+                                        borderRadius: BorderRadius.circular(11),
+                                        boxShadow: isSelected
+                                            ? [
+                                                BoxShadow(
+                                                  color: MauSac.chuDao.withValues(alpha: 0.5),
+                                                  blurRadius: 10,
+                                                  spreadRadius: 1,
+                                                )
+                                              ]
+                                            : null,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      _layTenNgayShort(index),
+                                      style: TextStyle(
+                                        color: isSelected ? MauSac.chuDao : MauSac.chuPhu,
+                                        fontSize: 11,
+                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                          ),
+                        ),
+
+                        const SizedBox(height: KhoangCach.vua),
+
+                        // Footer chi tiết ngày đang xem
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: MauSac.nenNoi,
+                            borderRadius: BoGoc.borderVua,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Đang xem: ${_layTenNgayFull(_ngayChonIndex)}',
+                                style: const TextStyle(color: MauSac.chuChinh, fontSize: 12),
+                              ),
+                              Text(
+                                _dinhDangTien(_chiTieuCacNgay[_ngayChonIndex]),
+                                style: const TextStyle(
+                                  color: MauSac.chuDao,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: KhoangCach.lon),
+
+                  // SECTION 4: GIAO DỊCH GẦN ĐÂY
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Giao dịch gần đây',
+                        style: TextStyle(
+                          color: MauSac.chuChinh,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          // Mở danh sách tất cả giao dịch
+                        },
+                        child: Row(
+                          children: const [
+                            Text(
+                              'Xem tất cả',
+                              style: TextStyle(
+                                color: MauSac.chuDao,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(width: 2),
+                            Icon(Icons.arrow_forward_rounded, color: MauSac.chuDao, size: 14),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: KhoangCach.nho),
+
+                  // DANH SÁCH CÁC THẺ GIAO DỊCH GẦN ĐÂY
+                  if (_dangTai)
+                    const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator(color: MauSac.chuDao)))
+                  else if (_danhSachGiaoDich.isEmpty)
+                    _taoThongTinGiaoDichDefault()
+                  else
+                    Column(
+                      children: _danhSachGiaoDich.take(5).map((gd) {
+                        final isThu = gd.loaiGiaoDich == 'thu_nhap';
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: KhoangCach.lToanBoChuan,
+                          decoration: BoxDecoration(
+                            color: MauSac.nenThe,
+                            borderRadius: BoGoc.borderVua,
+                            border: Border.all(color: MauSac.duongVienNhat),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: MauSac.nenNoi,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  isThu ? Icons.account_balance_rounded : Icons.shopping_cart_rounded,
+                                  color: isThu ? MauSac.thuNhap : MauSac.phu,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      gd.ghiChu != null && gd.ghiChu!.isNotEmpty
+                                          ? gd.ghiChu!
+                                          : (isThu ? 'Khoản thu nhập' : 'Khoản chi tiêu'),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: MauSac.chuChinh,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Tổng: ${_dinhDangTien(gd.soTien)}',
+                                      style: const TextStyle(color: MauSac.chuPhu, fontSize: 11),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    '${isThu ? "+" : "-"}${_dinhDangTien(gd.soTien)}',
+                                    style: TextStyle(
+                                      color: isThu ? MauSac.thuNhap : MauSac.chuChinh,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    isThu ? 'Đã nhận' : 'Đã trừ',
+                                    style: const TextStyle(color: MauSac.chuPhu, fontSize: 10),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+
+                  const SizedBox(height: KhoangCach.lon),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Danh sách giao dịch mẫu hiển thị khi CSDL trống
+  Widget _taoThongTinGiaoDichDefault() {
+    final listMock = [
+      {'icon': Icons.shopping_cart_rounded, 'title': 'Siêu thị WinMart', 'sub': 'Tổng: 4.820.000 đ', 'amount': '-650.000 đ', 'status': 'Đã trừ', 'isThu': false},
+      {'icon': Icons.account_balance_rounded, 'title': 'Lương TechCorp tháng', 'sub': 'Tổng: 4.820.000 đ', 'amount': '+35.000.000 đ', 'status': 'Đã nhận', 'isThu': true},
+      {'icon': Icons.local_cafe_rounded, 'title': 'The Coffee House', 'sub': 'Tổng: 4.820.000 đ', 'amount': '-85.000 đ', 'status': 'Đã trừ', 'isThu': false},
+      {'icon': Icons.directions_car_rounded, 'title': 'Grab Car di chuyển', 'sub': 'Tổng: 4.820.000 đ', 'amount': '-120.000 đ', 'status': 'Đã trừ', 'isThu': false},
+    ];
+
+    return Column(
+      children: listMock.map((item) {
+        final bool isThu = item['isThu'] as bool;
+        return Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: KhoangCach.lToanBoChuan,
+          decoration: BoxDecoration(
+            color: MauSac.nenThe,
+            borderRadius: BoGoc.borderVua,
+            border: Border.all(color: MauSac.duongVienNhat),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: MauSac.nenNoi,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  item['icon'] as IconData,
+                  color: isThu ? MauSac.thuNhap : MauSac.phu,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item['title'] as String,
+                      style: const TextStyle(
+                        color: MauSac.chuChinh,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      item['sub'] as String,
+                      style: const TextStyle(color: MauSac.chuPhu, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    item['amount'] as String,
+                    style: TextStyle(
+                      color: isThu ? MauSac.thuNhap : MauSac.chuChinh,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    item['status'] as String,
+                    style: const TextStyle(color: MauSac.chuPhu, fontSize: 10),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
