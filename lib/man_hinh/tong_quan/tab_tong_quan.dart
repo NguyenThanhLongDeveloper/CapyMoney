@@ -32,13 +32,13 @@ class _TabTongQuanState extends State<TabTongQuan> {
   bool _dangTai = true;
 
   /// Tổng tài sản khả dụng
-  double _tongTaiSan = 84520000.0;
+  double _tongTaiSan = 0.0;
 
   /// Thu nhập tháng này
-  double _thuNhapThang = 35000000.0;
+  double _thuNhapThang = 0.0;
 
   /// Chi tiêu tháng này
-  double _chiTieuThang = 18450000.0;
+  double _chiTieuThang = 0.0;
 
   /// Chi tiêu tổng tuần này
   final double _chiTieuTuanNay = 4820000.0;
@@ -83,10 +83,10 @@ class _TabTongQuanState extends State<TabTongQuan> {
             _tongTaiSan = 0.0;
           }
 
-          // Tính thu nhập và chi tiêu tháng này từ danh sách giao dịch
+          // Tính thu nhập và chi tiêu tháng này từ toàn bộ giao dịch CSDL trong tháng hiện tại (Không phân biệt ví)
           final now = DateTime.now();
-          double sumThu = 0;
-          double sumChi = 0;
+          double sumThu = 0.0;
+          double sumChi = 0.0;
 
           for (var gd in giaoDichList) {
             if (gd.ngayGiaoDich.month == now.month && gd.ngayGiaoDich.year == now.year) {
@@ -98,8 +98,8 @@ class _TabTongQuanState extends State<TabTongQuan> {
             }
           }
 
-          if (sumThu > 0) _thuNhapThang = sumThu;
-          if (sumChi > 0) _chiTieuThang = sumChi;
+          _thuNhapThang = sumThu;
+          _chiTieuThang = sumChi;
 
           _dangTai = false;
         });
