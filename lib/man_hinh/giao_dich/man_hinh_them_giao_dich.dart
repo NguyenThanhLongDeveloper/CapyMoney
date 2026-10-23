@@ -213,6 +213,13 @@ class _ManHinhThemGiaoDichState extends State<ManHinhThemGiaoDich> {
     }
   }
 
+  /// Định dạng chuỗi tiền tệ bất kỳ
+  String _dinhDangTienFormat(double amount) {
+    final String numStr = amount.toInt().toString();
+    final RegExp reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
+    return numStr.replaceAllMapped(reg, (Match m) => '${m[1]}.');
+  }
+
   /// Thao tác lưu giao dịch mới vào CSDL Supabase
   Future<void> _luuGiaoDich() async {
     final user = DichVuSupabase.nguoiDungHienTai;
@@ -230,6 +237,24 @@ class _ManHinhThemGiaoDichState extends State<ManHinhThemGiaoDich> {
     if (_danhMucChon == null) {
       _hienThongBao('Vui lòng chọn danh mục thu chi');
       return;
+    }
+
+    // RÀNG BUỘC KHI CHI TIÊU: Kiểm tra số dư tài khoản/ví đang chọn
+    if (_loaiGiaoDich == 'chi_tieu') {
+      if (_taiKhoanChon == null) {
+        _hienThongBao('Vui lòng chọn tài khoản ví thanh toán khoản chi này');
+        return;
+      }
+
+      final double soDuHienCo = _taiKhoanChon!.soDu;
+      if (soDuHienCo < soTien) {
+        final String soDuStr = _dinhDangTienFormat(soDuHienCo);
+        _hienThongBao(
+          'Số dư ví ${_taiKhoanChon!.tenNganHang} không đủ để chi tiêu! '
+          '(Số dư hiện có: $soDuStr đ, Cần chi: $_chuoiSoTienFormatted đ)',
+        );
+        return;
+      }
     }
 
     setState(() => _dangXuLy = true);
