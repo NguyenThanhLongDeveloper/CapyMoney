@@ -41,10 +41,10 @@ class _TabTongQuanState extends State<TabTongQuan> {
   double _chiTieuThang = 0.0;
 
   /// Chi tiêu tổng tuần này
-  final double _chiTieuTuanNay = 4820000.0;
+  double _chiTieuTuanNay = 0.0;
 
-  /// Mảng chi tiêu 7 ngày trong tuần (T2 -> CN)
-  final List<double> _chiTieuCacNgay = [450000, 820000, 350000, 950000, 1250000, 600000, 400000];
+  /// Mảng chi tiêu 7 ngày trong tuần từ T2 -> CN
+  List<double> _chiTieuCacNgay = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
 
   /// Danh sách tài khoản / ví ngân hàng
   List<TaiKhoanNganHangModel> _danhSachVi = [];
@@ -101,6 +101,29 @@ class _TabTongQuanState extends State<TabTongQuan> {
           _thuNhapThang = sumThu;
           _chiTieuThang = sumChi;
 
+          // 3. Tính chi tiêu tuần này (Từ Thứ 2 đến Chủ nhật của tuần hiện tại)
+          final dtMonday = DateTime(now.year, now.month, now.day)
+              .subtract(Duration(days: now.weekday - 1));
+
+          final List<double> chiTieuTuanList = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+
+          for (var gd in giaoDichList) {
+            if (gd.loaiGiaoDich == 'chi_tieu') {
+              for (int i = 0; i < 7; i++) {
+                final dayI = dtMonday.add(Duration(days: i));
+                if (gd.ngayGiaoDich.year == dayI.year &&
+                    gd.ngayGiaoDich.month == dayI.month &&
+                    gd.ngayGiaoDich.day == dayI.day) {
+                  chiTieuTuanList[i] += gd.soTien;
+                  break;
+                }
+              }
+            }
+          }
+
+          _chiTieuCacNgay = chiTieuTuanList;
+          _chiTieuTuanNay = chiTieuTuanList.fold(0.0, (sum, val) => sum + val);
+
           _dangTai = false;
         });
       }
@@ -119,20 +142,40 @@ class _TabTongQuanState extends State<TabTongQuan> {
     return '$formatted đ';
   }
 
-  /// Tên viết tắt các ngày trong tuần
+  /// Lấy ngày Thứ 2 của tuần hiện tại
+  DateTime get _ngayThuHaiTuanNay {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day)
+        .subtract(Duration(days: now.weekday - 1));
+  }
+
+  /// Tính số tuần thứ mấy trong năm
+  int get _soTuanTrongNam {
+    final now = DateTime.now();
+    final firstDayOfYear = DateTime(now.year, 1, 1);
+    final days = now.difference(firstDayOfYear).inDays;
+    return ((days + firstDayOfYear.weekday) / 7).ceil();
+  }
+
+  /// Tên viết tắt các ngày trong tuần (T2 -> CN)
   String _layTenNgayShort(int index) {
     const list = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
     return list[index % 7];
   }
 
-  /// Tên ngày đầy đủ
+  /// Tên ngày đầy đủ kèm ngày tháng năm chính xác (Ví dụ: 'T6 (Hôm nay, 17/10/2026)')
   String _layTenNgayFull(int index) {
-    final weekdayNow = DateTime.now().weekday - 1;
-    final tenDay = _layTenNgayShort(index);
-    if (index == weekdayNow) {
-      return '$tenDay (Hôm nay)';
+    final now = DateTime.now();
+    final weekdayNowIndex = now.weekday - 1;
+    final dayTarget = _ngayThuHaiTuanNay.add(Duration(days: index));
+    final tenShort = _layTenNgayShort(index);
+
+    final ngayThangStr = '${dayTarget.day.toString().padLeft(2, '0')}/${dayTarget.month.toString().padLeft(2, '0')}/${dayTarget.year}';
+
+    if (index == weekdayNowIndex) {
+      return '$tenShort (Hôm nay, $ngayThangStr)';
     }
-    return tenDay;
+    return '$tenShort ($ngayThangStr)';
   }
 
   @override
@@ -449,9 +492,9 @@ class _TabTongQuanState extends State<TabTongQuan> {
                                 color: MauSac.nenNoi,
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: const Text(
-                                'Tuần 43',
-                                style: TextStyle(color: MauSac.chuPhu, fontSize: 11, fontWeight: FontWeight.bold),
+                              child: Text(
+                                'Tuần $_soTuanTrongNam',
+                                style: const TextStyle(color: MauSac.chuPhu, fontSize: 11, fontWeight: FontWeight.bold),
                               ),
                             ),
                           ],
@@ -468,8 +511,11 @@ class _TabTongQuanState extends State<TabTongQuan> {
                             children: List.generate(7, (index) {
                               final bool isSelected = _ngayChonIndex == index;
                               final double value = _chiTieuCacNgay[index];
-                              const double maxVal = 1500000;
-                              final double barHeight = ((value / maxVal) * 75).clamp(20.0, 75.0);
+                              final double maxValInWeek = _chiTieuCacNgay.reduce((a, b) => a > b ? a : b);
+                              final double maxRef = maxValInWeek > 0 ? maxValInWeek : 1000000;
+                              final double barHeight = value > 0
+                                  ? ((value / maxRef) * 75).clamp(16.0, 75.0)
+                                  : 12.0;
 
                               return GestureDetector(
                                 onTap: () => setState(() => _ngayChonIndex = index),
@@ -514,20 +560,25 @@ class _TabTongQuanState extends State<TabTongQuan> {
 
                         // Footer chi tiết ngày đang xem
                         Container(
+                          width: double.infinity, // Mở rộng hết chiều ngang để dễ căn giữa nếu cần
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           decoration: BoxDecoration(
                             color: MauSac.nenNoi,
                             borderRadius: BoGoc.borderVua,
                           ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center, // Căn giữa theo chiều dọc
+                            crossAxisAlignment: CrossAxisAlignment.center, // Căn giữa theo chiều ngang
                             children: [
                               Text(
                                 'Đang xem: ${_layTenNgayFull(_ngayChonIndex)}',
+                                textAlign: TextAlign.center, // Căn giữa text nếu dòng quá dài xuống dòng
                                 style: const TextStyle(color: MauSac.chuChinh, fontSize: 12),
                               ),
+                              const SizedBox(height: 4), // Khoảng cách nhỏ giữa 2 dòng text
                               Text(
                                 _dinhDangTien(_chiTieuCacNgay[_ngayChonIndex]),
+                                textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   color: MauSac.chuDao,
                                   fontSize: 12,
