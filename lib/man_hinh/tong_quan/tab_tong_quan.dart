@@ -7,6 +7,7 @@ import '../../giao_dien/chuan_thiet_ke/hinh_anh.dart';
 import '../../giao_dien/chuan_thiet_ke/dap_ung.dart';
 import '../../mo_hinh/giao_dich_model.dart';
 import '../../mo_hinh/tai_khoan_ngan_hang_model.dart';
+import '../../mo_hinh/danh_muc_model.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
 
 /// Tab 1: Màn Hình Tổng Quan Tài Chính (Dashboard Screen)
@@ -52,6 +53,9 @@ class _TabTongQuanState extends State<TabTongQuan> {
   /// Danh sách giao dịch gần đây
   List<GiaoDichModel> _danhSachGiaoDich = [];
 
+  /// Danh sách danh mục thu chi từ CSDL
+  List<DanhMucModel> _danhSachDanhMuc = [];
+
   @override
   void initState() {
     super.initState();
@@ -66,11 +70,13 @@ class _TabTongQuanState extends State<TabTongQuan> {
     try {
       final viList = await DichVuSupabase.layDanhSachTaiKhoan();
       final giaoDichList = await DichVuSupabase.layDanhSachGiaoDich();
+      final danhMucList = await DichVuSupabase.layDanhSachDanhMuc();
 
       if (mounted) {
         setState(() {
           _danhSachVi = viList;
           _danhSachGiaoDich = giaoDichList;
+          _danhSachDanhMuc = danhMucList;
 
           // Lấy số dư tài khoản ngân hàng mặc định (la_nhan_chinh == true)
           if (viList.isNotEmpty) {
@@ -124,6 +130,14 @@ class _TabTongQuanState extends State<TabTongQuan> {
           _chiTieuCacNgay = chiTieuTuanList;
           _chiTieuTuanNay = chiTieuTuanList.fold(0.0, (sum, val) => sum + val);
 
+          // 4. Lọc danh sách giao dịch gần đây chỉ thuộc THÁNG HIỆN TẠI (Tất cả tài khoản)
+          final List<GiaoDichModel> giaoDichThangNay = giaoDichList.where((gd) {
+            return gd.ngayGiaoDich.month == now.month &&
+                gd.ngayGiaoDich.year == now.year;
+          }).toList();
+
+          _danhSachGiaoDich = giaoDichThangNay;
+
           _dangTai = false;
         });
       }
@@ -140,6 +154,17 @@ class _TabTongQuanState extends State<TabTongQuan> {
     final RegExp reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
     final String formatted = numStr.replaceAllMapped(reg, (Match m) => '${m[1]}.');
     return '$formatted đ';
+  }
+
+  /// Lấy tên danh mục từ ID hoặc tên mặc định
+  String _layTenDanhMuc(String? danhMucId, bool isThu) {
+    if (danhMucId != null && danhMucId.isNotEmpty) {
+      final dmList = _danhSachDanhMuc.where((d) => d.id == danhMucId).toList();
+      if (dmList.isNotEmpty) {
+        return dmList.first.tenDanhMuc;
+      }
+    }
+    return isThu ? 'Khoản thu nhập' : 'Khoản chi tiêu';
   }
 
   /// Lấy ngày Thứ 2 của tuần hiện tại
@@ -634,7 +659,7 @@ class _TabTongQuanState extends State<TabTongQuan> {
                   if (_dangTai)
                     const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator(color: MauSac.chuDao)))
                   else if (_danhSachGiaoDich.isEmpty)
-                    _taoThongTinGiaoDichDefault()
+                    _taoEmptyStateChuaCoGiaoDich()
                   else
                     Column(
                       children: _danhSachGiaoDich.take(5).map((gd) {
@@ -667,9 +692,7 @@ class _TabTongQuanState extends State<TabTongQuan> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      gd.ghiChu != null && gd.ghiChu!.isNotEmpty
-                                          ? gd.ghiChu!
-                                          : (isThu ? 'Khoản thu nhập' : 'Khoản chi tiêu'),
+                                      _layTenDanhMuc(gd.danhMucId, isThu),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: const TextStyle(
@@ -680,7 +703,11 @@ class _TabTongQuanState extends State<TabTongQuan> {
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
-                                      'Tổng: ${_dinhDangTien(gd.soTien)}',
+                                      gd.ghiChu != null && gd.ghiChu!.trim().isNotEmpty
+                                          ? gd.ghiChu!
+                                          : (isThu ? 'Ghi nhận thu nhập' : 'Ghi nhận chi tiêu'),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                       style: const TextStyle(color: MauSac.chuPhu, fontSize: 11),
                                     ),
                                   ],
@@ -721,84 +748,47 @@ class _TabTongQuanState extends State<TabTongQuan> {
     );
   }
 
-  /// Danh sách giao dịch mẫu hiển thị khi CSDL trống
-  Widget _taoThongTinGiaoDichDefault() {
-    final listMock = [
-      {'icon': Icons.shopping_cart_rounded, 'title': 'Siêu thị WinMart', 'sub': 'Tổng: 4.820.000 đ', 'amount': '-650.000 đ', 'status': 'Đã trừ', 'isThu': false},
-      {'icon': Icons.account_balance_rounded, 'title': 'Lương TechCorp tháng', 'sub': 'Tổng: 4.820.000 đ', 'amount': '+35.000.000 đ', 'status': 'Đã nhận', 'isThu': true},
-      {'icon': Icons.local_cafe_rounded, 'title': 'The Coffee House', 'sub': 'Tổng: 4.820.000 đ', 'amount': '-85.000 đ', 'status': 'Đã trừ', 'isThu': false},
-      {'icon': Icons.directions_car_rounded, 'title': 'Grab Car di chuyển', 'sub': 'Tổng: 4.820.000 đ', 'amount': '-120.000 đ', 'status': 'Đã trừ', 'isThu': false},
-    ];
-
-    return Column(
-      children: listMock.map((item) {
-        final bool isThu = item['isThu'] as bool;
-        return Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: KhoangCach.lToanBoChuan,
-          decoration: BoxDecoration(
-            color: MauSac.nenThe,
-            borderRadius: BoGoc.borderVua,
-            border: Border.all(color: MauSac.duongVienNhat),
+  /// Khung hiển thị khi không có giao dịch nào trong tháng hiện tại
+  Widget _taoEmptyStateChuaCoGiaoDich() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+      decoration: BoxDecoration(
+        color: MauSac.nenThe,
+        borderRadius: BoGoc.borderVua,
+        border: Border.all(color: MauSac.duongVienNhat),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: const BoxDecoration(
+              color: MauSac.nenNoi,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.receipt_long_rounded,
+              color: MauSac.chuPhu,
+              size: 28,
+            ),
           ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: MauSac.nenNoi,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  item['icon'] as IconData,
-                  color: isThu ? MauSac.thuNhap : MauSac.phu,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item['title'] as String,
-                      style: const TextStyle(
-                        color: MauSac.chuChinh,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      item['sub'] as String,
-                      style: const TextStyle(color: MauSac.chuPhu, fontSize: 11),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    item['amount'] as String,
-                    style: TextStyle(
-                      color: isThu ? MauSac.thuNhap : MauSac.chuChinh,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    item['status'] as String,
-                    style: const TextStyle(color: MauSac.chuPhu, fontSize: 10),
-                  ),
-                ],
-              ),
-            ],
+          const SizedBox(height: 12),
+          const Text(
+            'Chưa có giao dịch',
+            style: TextStyle(
+              color: MauSac.chuChinh,
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        );
-      }).toList(),
+          const SizedBox(height: 4),
+          const Text(
+            'Chưa có khoản thu chi nào trong tháng này.\nHãy nhấn nút (+) bên dưới để thêm ghi chép mới!',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: MauSac.chuPhu, fontSize: 12, height: 1.4),
+          ),
+        ],
+      ),
     );
   }
 }
