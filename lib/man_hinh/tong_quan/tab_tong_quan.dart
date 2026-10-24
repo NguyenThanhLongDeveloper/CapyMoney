@@ -9,6 +9,7 @@ import '../../mo_hinh/giao_dich_model.dart';
 import '../../mo_hinh/tai_khoan_ngan_hang_model.dart';
 import '../../mo_hinh/danh_muc_model.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
+import '../giao_dich/man_hinh_danh_sach_giao_dich.dart';
 
 /// Tab 1: Màn Hình Tổng Quan Tài Chính (Dashboard Screen)
 /// 
@@ -632,8 +633,14 @@ class _TabTongQuanState extends State<TabTongQuan> {
                         ),
                       ),
                       GestureDetector(
-                        onTap: () {
-                          // Mở danh sách tất cả giao dịch
+                        onTap: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ManHinhDanhSachGiaoDich(),
+                            ),
+                          );
+                          _loadDuLieuDashboard();
                         },
                         child: Row(
                           children: const [
