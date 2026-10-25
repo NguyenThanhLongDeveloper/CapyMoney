@@ -23,8 +23,12 @@ class ManHinhDanhSachGiaoDich extends StatefulWidget {
 }
 
 class _ManHinhDanhSachGiaoDichState extends State<ManHinhDanhSachGiaoDich> {
-  /// Tháng/Năm đang chọn lọc (Mặc định tháng hiện tại)
-  DateTime _thangNamChon = DateTime.now();
+  /// Ngày bắt đầu và kết thúc lọc
+  late DateTime _ngayBatDauChon;
+  late DateTime _ngayKetThucChon;
+
+  /// Nhãn thời gian hiển thị (Mặc định 'T10, 2026')
+  late String _nhanThoiGianHienThi;
 
   /// Bộ điều khiển ô tìm kiếm
   final _timKiemController = TextEditingController();
@@ -50,6 +54,11 @@ class _ManHinhDanhSachGiaoDichState extends State<ManHinhDanhSachGiaoDich> {
   @override
   void initState() {
     super.initState();
+    final now = DateTime.now();
+    _ngayBatDauChon = DateTime(now.year, now.month, 1);
+    final lastDay = DateTime(now.year, now.month + 1, 0).day;
+    _ngayKetThucChon = DateTime(now.year, now.month, lastDay, 23, 59, 59);
+    _nhanThoiGianHienThi = 'T${now.month}, ${now.year}';
     _loadDuLieu();
   }
 
@@ -80,13 +89,19 @@ class _ManHinhDanhSachGiaoDichState extends State<ManHinhDanhSachGiaoDich> {
     final result = await BsLocThoiGian.hienThi(
       context,
       loaiLocBanDau: LoaiLocThoiGian.thangNay,
+      khoangNgayTuyChonBanDau: DateTimeRange(start: _ngayBatDauChon, end: _ngayKetThucChon),
     );
 
     if (result != null) {
-      final DateTime? ngayBatDau = result['ngayBatDau'] as DateTime?;
-      if (ngayBatDau != null) {
+      final DateTime? start = result['ngayBatDau'] as DateTime?;
+      final DateTime? end = result['ngayKetThuc'] as DateTime?;
+      final String? label = result['tenLoaiLoc'] as String?;
+
+      if (start != null && end != null && label != null) {
         setState(() {
-          _thangNamChon = ngayBatDau;
+          _ngayBatDauChon = start;
+          _ngayKetThucChon = end;
+          _nhanThoiGianHienThi = label;
         });
       }
     }
@@ -160,10 +175,11 @@ class _ManHinhDanhSachGiaoDichState extends State<ManHinhDanhSachGiaoDich> {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Lọc danh sách giao dịch thuộc THÁNG DƯỢC CHỌN
+    // 1. Lọc danh sách giao dịch thuộc KHOẢNG THỜI GIAN ĐƯỢC CHỌN
     final List<GiaoDichModel> giaoDichThangChon = _tatCaGiaoDich.where((gd) {
-      return gd.ngayGiaoDich.month == _thangNamChon.month &&
-          gd.ngayGiaoDich.year == _thangNamChon.year;
+      final dt = gd.ngayGiaoDich;
+      return dt.isAfter(_ngayBatDauChon.subtract(const Duration(seconds: 1))) &&
+          dt.isBefore(_ngayKetThucChon.add(const Duration(seconds: 1)));
     }).toList();
 
     // 2. Tính toán Thống kê Dòng tiền tháng
@@ -281,7 +297,7 @@ class _ManHinhDanhSachGiaoDichState extends State<ManHinhDanhSachGiaoDich> {
                               const Icon(Icons.calendar_month_rounded, color: MauSac.chuDao, size: 14),
                               const SizedBox(width: 6),
                               Text(
-                                'T${_thangNamChon.month}, ${_thangNamChon.year}',
+                                _nhanThoiGianHienThi,
                                 style: const TextStyle(
                                   color: MauSac.chuChinh,
                                   fontSize: 12,
@@ -314,7 +330,7 @@ class _ManHinhDanhSachGiaoDichState extends State<ManHinhDanhSachGiaoDich> {
                             const Icon(Icons.circle, color: MauSac.chuDao, size: 8),
                             const SizedBox(width: 6),
                             Text(
-                              'DÒNG TIỀN THÁNG ${_thangNamChon.month}',
+                              'DÒNG TIỀN $_nhanThoiGianHienThi'.toUpperCase(),
                               style: const TextStyle(
                                 color: MauSac.chuPhu,
                                 fontSize: 11,
@@ -743,7 +759,7 @@ class _ManHinhDanhSachGiaoDichState extends State<ManHinhDanhSachGiaoDich> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Không tìm thấy khoản thu chi nào trong tháng ${_thangNamChon.month}/${_thangNamChon.year}.\nHãy nhấn nút (+) bên dưới để thêm ghi chép mới!',
+            'Không tìm thấy khoản thu chi nào trong $_nhanThoiGianHienThi.\nHãy nhấn nút (+) bên dưới để thêm ghi chép mới!',
             textAlign: TextAlign.center,
             style: const TextStyle(color: MauSac.chuPhu, fontSize: 12, height: 1.4),
           ),
