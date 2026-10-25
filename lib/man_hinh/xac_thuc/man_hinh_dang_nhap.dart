@@ -9,6 +9,7 @@ import '../../giao_dien/chuan_thiet_ke/khoang_cach.dart';
 import '../../giao_dien/chuan_thiet_ke/bieu_tuong.dart';
 import '../../giao_dien/chuan_thiet_ke/hinh_anh.dart';
 import '../../giao_dien/chuan_thiet_ke/dap_ung.dart';
+import '../../giao_dien/thong_bao/thong_bao_giua_man_hinh.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
 import 'man_hinh_dang_ky.dart';
 import 'man_hinh_quen_mat_khau.dart';
@@ -276,13 +277,11 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
     );
   }
 
-  void _hienThongBao(String noiDung) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(noiDung),
-        backgroundColor: MauSac.chiTieu,
-        duration: const Duration(seconds: 4),
-      ),
+  void _hienThongBao(String noiDung, {LoaiThongBao loai = LoaiThongBao.loi}) {
+    ThongBaoGiuaManHinh.hienThi(
+      context,
+      noiDung: noiDung,
+      loai: loai,
     );
   }
 

@@ -12,6 +12,7 @@ import '../../giao_dien/chuan_thiet_ke/bieu_tuong.dart';
 import '../../giao_dien/chuan_thiet_ke/dap_ung.dart';
 import '../../giao_dien/bottom_sheet/bs_lien_ket_tai_khoan.dart';
 import '../../giao_dien/bottom_sheet/bs_cai_dat_nhac_nho.dart';
+import '../../giao_dien/thong_bao/thong_bao_giua_man_hinh.dart';
 import '../../cau_hinh/duong_dan_api.dart';
 import '../../mo_hinh/tai_khoan_ngan_hang_model.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
@@ -349,16 +350,12 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
                 final sdtMoi = sdtCtrl.text.trim();
 
                 if (tenMoi.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Họ và tên không được để trống'), backgroundColor: MauSac.chiTieu),
-                  );
+                  ThongBaoGiuaManHinh.hienThi(context, noiDung: 'Họ và tên không được để trống', loai: LoaiThongBao.loi);
                   return;
                 }
 
                 if (sdtMoi.length != 10) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Số điện thoại phải gồm đúng 10 chữ số'), backgroundColor: MauSac.chiTieu),
-                  );
+                  ThongBaoGiuaManHinh.hienThi(context, noiDung: 'Số điện thoại phải gồm đúng 10 chữ số', loai: LoaiThongBao.loi);
                   return;
                 }
 
@@ -386,9 +383,7 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
                 });
 
                 Navigator.of(context, rootNavigator: true).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Cập nhật thông tin cá nhân thành công!'), backgroundColor: MauSac.chuDao),
-                );
+                ThongBaoGiuaManHinh.hienThi(context, noiDung: 'Cập nhật thông tin cá nhân thành công!', loai: LoaiThongBao.thanhCong);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: MauSac.chuDao,
@@ -424,16 +419,12 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
 
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          val
-              ? 'Đã bật nhắc nhở ghi chép giao dịch lúc $_thoiGianNhacNho hàng ngày'
-              : 'Đã tắt nhắc nhở ghi chép giao dịch',
-        ),
-        backgroundColor: val ? MauSac.chuDao : MauSac.nenNoi,
-        duration: const Duration(seconds: 3),
-      ),
+    ThongBaoGiuaManHinh.hienThi(
+      context,
+      noiDung: val
+          ? 'Đã bật nhắc nhở ghi chép giao dịch lúc $_thoiGianNhacNho hàng ngày'
+          : 'Đã tắt nhắc nhở ghi chép giao dịch',
+      loai: val ? LoaiThongBao.thanhCong : LoaiThongBao.canhBao,
     );
   }
 
@@ -468,12 +459,10 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Đã cập nhật giờ nhắc nhở ghi chép thành $gioMoi hàng ngày!'),
-          backgroundColor: MauSac.chuDao,
-          duration: const Duration(seconds: 3),
-        ),
+      ThongBaoGiuaManHinh.hienThi(
+        context,
+        noiDung: 'Đã cập nhật giờ nhắc nhở ghi chép thành $gioMoi hàng ngày!',
+        loai: LoaiThongBao.thanhCong,
       );
     }
   }
@@ -498,16 +487,12 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
 
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          val
-              ? 'Đã bật nhận báo cáo phân tích tuần qua Gmail'
-              : 'Đã tắt nhận báo cáo phân tích qua Gmail',
-        ),
-        backgroundColor: val ? MauSac.chuDao : MauSac.nenNoi,
-        duration: const Duration(seconds: 3),
-      ),
+    ThongBaoGiuaManHinh.hienThi(
+      context,
+      noiDung: val
+          ? 'Đã bật nhận báo cáo phân tích tuần qua Gmail'
+          : 'Đã tắt nhận báo cáo phân tích qua Gmail',
+      loai: val ? LoaiThongBao.thanhCong : LoaiThongBao.canhBao,
     );
   }
 
@@ -526,16 +511,12 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
 
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          val
-              ? 'Đã bật đăng nhập bằng vân tay cho tài khoản $_email'
-              : 'Đã tắt đăng nhập bằng vân tay cho tài khoản $_email',
-        ),
-        backgroundColor: val ? MauSac.chuDao : MauSac.nenNoi,
-        duration: const Duration(seconds: 3),
-      ),
+    ThongBaoGiuaManHinh.hienThi(
+      context,
+      noiDung: val
+          ? 'Đã bật đăng nhập bằng vân tay cho tài khoản $_email'
+          : 'Đã tắt đăng nhập bằng vân tay cho tài khoản $_email',
+      loai: val ? LoaiThongBao.thanhCong : LoaiThongBao.canhBao,
     );
   }
 

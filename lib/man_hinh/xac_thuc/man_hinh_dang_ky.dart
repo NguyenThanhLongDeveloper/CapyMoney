@@ -5,6 +5,7 @@ import '../../giao_dien/chuan_thiet_ke/mau_sac.dart';
 import '../../giao_dien/chuan_thiet_ke/bo_goc.dart';
 import '../../giao_dien/chuan_thiet_ke/khoang_cach.dart';
 import '../../giao_dien/chuan_thiet_ke/dap_ung.dart';
+import '../../giao_dien/thong_bao/thong_bao_giua_man_hinh.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
 import 'man_hinh_dang_nhap.dart';
 
@@ -95,18 +96,20 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Đăng ký tài khoản thành công! Vui lòng đăng nhập với Gmail $email'),
-          backgroundColor: MauSac.chuDao,
-          duration: const Duration(seconds: 4),
-        ),
+      ThongBaoGiuaManHinh.hienThi(
+        context,
+        noiDung: 'Đăng ký tài khoản thành công! Vui lòng đăng nhập với Gmail $email',
+        loai: LoaiThongBao.thanhCong,
       );
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const ManHinhDangNhap()),
-      );
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const ManHinhDangNhap()),
+          );
+        }
+      });
     } on AuthException catch (e) {
       if (!mounted) return;
       _hienThongBao('Lỗi đăng ký: ${e.message}');
@@ -118,13 +121,11 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
     }
   }
 
-  void _hienThongBao(String noiDung) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(noiDung),
-        backgroundColor: MauSac.chiTieu,
-        duration: const Duration(seconds: 3),
-      ),
+  void _hienThongBao(String noiDung, {LoaiThongBao loai = LoaiThongBao.loi}) {
+    ThongBaoGiuaManHinh.hienThi(
+      context,
+      noiDung: noiDung,
+      loai: loai,
     );
   }
 

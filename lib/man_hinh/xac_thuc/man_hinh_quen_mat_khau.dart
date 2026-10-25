@@ -4,6 +4,7 @@ import '../../giao_dien/chuan_thiet_ke/mau_sac.dart';
 import '../../giao_dien/chuan_thiet_ke/bo_goc.dart';
 import '../../giao_dien/chuan_thiet_ke/khoang_cach.dart';
 import '../../giao_dien/chuan_thiet_ke/dap_ung.dart';
+import '../../giao_dien/thong_bao/thong_bao_giua_man_hinh.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
 import 'man_hinh_xac_thuc_otp.dart';
 
@@ -44,20 +45,22 @@ class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Mã OTP khôi phục đã được gửi về Gmail $email. Vui lòng kiểm tra hộp thư!'),
-          backgroundColor: MauSac.chuDao,
-          duration: const Duration(seconds: 4),
-        ),
+      ThongBaoGiuaManHinh.hienThi(
+        context,
+        noiDung: 'Mã OTP khôi phục đã được gửi về Gmail $email!',
+        loai: LoaiThongBao.thanhCong,
       );
 
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ManHinhXacThucOtp(email: email),
-        ),
-      );
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ManHinhXacThucOtp(email: email),
+            ),
+          );
+        }
+      });
     } on AuthException catch (e) {
       if (!mounted) return;
       final msg = e.message.toLowerCase();
@@ -79,13 +82,11 @@ class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
     }
   }
 
-  void _hienThongBao(String noiDung) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(noiDung),
-        backgroundColor: MauSac.chiTieu,
-        duration: const Duration(seconds: 4),
-      ),
+  void _hienThongBao(String noiDung, {LoaiThongBao loai = LoaiThongBao.loi}) {
+    ThongBaoGiuaManHinh.hienThi(
+      context,
+      noiDung: noiDung,
+      loai: loai,
     );
   }
 

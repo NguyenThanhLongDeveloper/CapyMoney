@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../chuan_thiet_ke/mau_sac.dart';
 import '../chuan_thiet_ke/bo_goc.dart';
 import '../chuan_thiet_ke/khoang_cach.dart';
+import '../thong_bao/thong_bao_giua_man_hinh.dart';
 import '../../mo_hinh/tai_khoan_ngan_hang_model.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
 
@@ -82,11 +83,10 @@ class _BsLienKetTaiKhoanState extends State<BsLienKetTaiKhoan> {
     final tenChu = _tenChuTaiKhoanController.text.trim();
 
     if (stk.isEmpty || tenChu.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Vui lòng nhập đầy đủ Số tài khoản và Tên chủ tài khoản'),
-          backgroundColor: MauSac.chiTieu,
-        ),
+      ThongBaoGiuaManHinh.hienThi(
+        context,
+        noiDung: 'Vui lòng nhập đầy đủ Số tài khoản và Tên chủ tài khoản',
+        loai: LoaiThongBao.loi,
       );
       return;
     }
@@ -113,19 +113,17 @@ class _BsLienKetTaiKhoanState extends State<BsLienKetTaiKhoan> {
       await _loadDanhSachTaiKhoan();
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Thêm tài khoản / ví liên kết mới thành công!'),
-          backgroundColor: MauSac.chuDao,
-        ),
+      ThongBaoGiuaManHinh.hienThi(
+        context,
+        noiDung: 'Thêm tài khoản / ví liên kết mới thành công!',
+        loai: LoaiThongBao.thanhCong,
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Lỗi thêm tài khoản: $e'),
-          backgroundColor: MauSac.chiTieu,
-        ),
+      ThongBaoGiuaManHinh.hienThi(
+        context,
+        noiDung: 'Lỗi thêm tài khoản: $e',
+        loai: LoaiThongBao.loi,
       );
     } finally {
       if (mounted) setState(() => _dangTai = false);
@@ -148,11 +146,10 @@ class _BsLienKetTaiKhoanState extends State<BsLienKetTaiKhoan> {
       await DichVuSupabase.xoaTaiKhoan(id);
       await _loadDanhSachTaiKhoan();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đã xóa tài khoản liên kết'),
-          backgroundColor: MauSac.chuDao,
-        ),
+      ThongBaoGiuaManHinh.hienThi(
+        context,
+        noiDung: 'Đã xóa tài khoản liên kết',
+        loai: LoaiThongBao.thanhCong,
       );
     } catch (_) {}
   }

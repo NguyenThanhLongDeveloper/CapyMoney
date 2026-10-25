@@ -6,6 +6,7 @@ import '../../giao_dien/chuan_thiet_ke/bo_goc.dart';
 import '../../giao_dien/chuan_thiet_ke/khoang_cach.dart';
 import '../../giao_dien/chuan_thiet_ke/bieu_tuong.dart';
 import '../../giao_dien/chuan_thiet_ke/dap_ung.dart';
+import '../../giao_dien/thong_bao/thong_bao_giua_man_hinh.dart';
 import '../../giao_dien/bottom_sheet/bs_lien_ket_tai_khoan.dart';
 import '../../mo_hinh/danh_muc_model.dart';
 import '../../mo_hinh/tai_khoan_ngan_hang_model.dart';
@@ -291,19 +292,17 @@ class _ManHinhThemGiaoDichState extends State<ManHinhThemGiaoDich> {
       if (!mounted) return;
 
       final isChiTieu = _loaiGiaoDich == 'chi_tieu';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            isChiTieu
-                ? 'Đã ghi nhận khoản chi $_chuoiSoTienFormatted đ thành công!'
-                : 'Đã ghi nhận khoản thu $_chuoiSoTienFormatted đ thành công!',
-          ),
-          backgroundColor: isChiTieu ? MauSac.chiTieu : MauSac.thuNhap,
-          duration: const Duration(seconds: 3),
-        ),
+      ThongBaoGiuaManHinh.hienThi(
+        context,
+        noiDung: isChiTieu
+            ? 'Đã ghi nhận khoản chi $_chuoiSoTienFormatted đ thành công!'
+            : 'Đã ghi nhận khoản thu $_chuoiSoTienFormatted đ thành công!',
+        loai: LoaiThongBao.thanhCong,
       );
 
-      Navigator.pop(context, true);
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        if (mounted) Navigator.pop(context, true);
+      });
     } catch (e) {
       if (mounted) _hienThongBao('Không thể ghi chép giao dịch: $e');
     } finally {
@@ -311,13 +310,11 @@ class _ManHinhThemGiaoDichState extends State<ManHinhThemGiaoDich> {
     }
   }
 
-  void _hienThongBao(String noiDung) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(noiDung),
-        backgroundColor: MauSac.chiTieu,
-        duration: const Duration(seconds: 3),
-      ),
+  void _hienThongBao(String noiDung, {LoaiThongBao loai = LoaiThongBao.loi}) {
+    ThongBaoGiuaManHinh.hienThi(
+      context,
+      noiDung: noiDung,
+      loai: loai,
     );
   }
 
