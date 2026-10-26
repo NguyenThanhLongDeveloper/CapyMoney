@@ -336,7 +336,7 @@ class _ManHinhThemGiaoDichState extends State<ManHinhThemGiaoDich> {
         backgroundColor: MauSac.nenChinh,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.chevron_left_rounded, color: MauSac.chuChinh, size: 28),
+          icon: const Icon(BieuTuong.muiTenTrai, color: MauSac.chuChinh, size: 28),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(

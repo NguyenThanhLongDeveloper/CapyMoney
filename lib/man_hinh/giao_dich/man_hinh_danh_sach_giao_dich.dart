@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../giao_dien/chuan_thiet_ke/mau_sac.dart';
 import '../../giao_dien/chuan_thiet_ke/bo_goc.dart';
 import '../../giao_dien/chuan_thiet_ke/khoang_cach.dart';
+import '../../giao_dien/chuan_thiet_ke/bieu_tuong.dart';
 import '../../giao_dien/chuan_thiet_ke/dap_ung.dart';
 import '../../giao_dien/bottom_sheet/bs_loc_thoi_gian.dart';
 import '../../mo_hinh/giao_dich_model.dart';
@@ -244,7 +245,7 @@ class _ManHinhDanhSachGiaoDichState extends State<ManHinhDanhSachGiaoDich> {
         backgroundColor: MauSac.nenChinh,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.chevron_left_rounded, color: MauSac.chuChinh, size: 28),
+          icon: const Icon(BieuTuong.muiTenTrai, color: MauSac.chuChinh, size: 28),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(

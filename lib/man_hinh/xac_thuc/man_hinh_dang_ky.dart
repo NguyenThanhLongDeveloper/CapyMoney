@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../giao_dien/chuan_thiet_ke/mau_sac.dart';
 import '../../giao_dien/chuan_thiet_ke/bo_goc.dart';
 import '../../giao_dien/chuan_thiet_ke/khoang_cach.dart';
+import '../../giao_dien/chuan_thiet_ke/bieu_tuong.dart';
 import '../../giao_dien/chuan_thiet_ke/dap_ung.dart';
 import '../../giao_dien/thong_bao/thong_bao_giua_man_hinh.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
@@ -241,7 +242,7 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
                         decoration: InputDecoration(
                           hintText: 'Nguyễn Văn A',
                           hintStyle: const TextStyle(color: MauSac.chuMo),
-                          prefixIcon: const Icon(Icons.person_outline_rounded, color: MauSac.chuPhu, size: 20),
+                          prefixIcon: const Icon(BieuTuong.taiKhoan, color: MauSac.chuPhu, size: 20),
                           filled: true,
                           fillColor: MauSac.nenNoi,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -270,7 +271,7 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
                         decoration: InputDecoration(
                           hintText: 'example@gmail.com',
                           hintStyle: const TextStyle(color: MauSac.chuMo),
-                          prefixIcon: const Icon(Icons.email_outlined, color: MauSac.chuPhu, size: 20),
+                          prefixIcon: const Icon(BieuTuong.email, color: MauSac.chuPhu, size: 20),
                           filled: true,
                           fillColor: MauSac.nenNoi,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -302,7 +303,7 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
                           counterText: '',
                           hintText: '09*******78',
                           hintStyle: const TextStyle(color: MauSac.chuMo),
-                          prefixIcon: const Icon(Icons.phone_outlined, color: MauSac.chuPhu, size: 20),
+                          prefixIcon: const Icon(BieuTuong.dienThoai, color: MauSac.chuPhu, size: 20),
                           filled: true,
                           fillColor: MauSac.nenNoi,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -337,10 +338,10 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
                         decoration: InputDecoration(
                           hintText: '••••••••••••',
                           hintStyle: const TextStyle(color: MauSac.chuMo),
-                          prefixIcon: const Icon(Icons.lock_outline_rounded, color: MauSac.chuPhu, size: 20),
+                          prefixIcon: const Icon(BieuTuong.khoaMatKhau, color: MauSac.chuPhu, size: 20),
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _anMatKhau ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                              _anMatKhau ? BieuTuong.matXem : BieuTuong.matAn,
                               color: MauSac.chuPhu,
                               size: 20,
                             ),
@@ -374,10 +375,10 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
                         decoration: InputDecoration(
                           hintText: '••••••••••••',
                           hintStyle: const TextStyle(color: MauSac.chuMo),
-                          prefixIcon: const Icon(Icons.history_rounded, color: MauSac.chuPhu, size: 20),
+                          prefixIcon: const Icon(BieuTuong.lichSu, color: MauSac.chuPhu, size: 20),
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _anNhapLaiMatKhau ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                              _anNhapLaiMatKhau ? BieuTuong.matXem : BieuTuong.matAn,
                               color: MauSac.chuPhu,
                               size: 20,
                             ),
@@ -407,7 +408,7 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
                             Row(
                               children: [
                                 Icon(
-                                  _emailHopLe ? Icons.check_circle_rounded : Icons.circle_outlined,
+                                  _emailHopLe ? BieuTuong.dauTichTron : BieuTuong.chamTronVien,
                                   color: _emailHopLe ? MauSac.chuDao : MauSac.chuMo,
                                   size: 16,
                                 ),
@@ -426,7 +427,7 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
                             Row(
                               children: [
                                 Icon(
-                                  _sdtHopLe ? Icons.check_circle_rounded : Icons.circle_outlined,
+                                  _sdtHopLe ? BieuTuong.dauTichTron : BieuTuong.chamTronVien,
                                   color: _sdtHopLe ? MauSac.chuDao : MauSac.chuMo,
                                   size: 16,
                                 ),
@@ -445,7 +446,7 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
                             Row(
                               children: [
                                 Icon(
-                                  _du8KyTu ? Icons.check_circle_rounded : Icons.circle_outlined,
+                                  _du8KyTu ? BieuTuong.dauTichTron : BieuTuong.chamTronVien,
                                   color: _du8KyTu ? MauSac.chuDao : MauSac.chuMo,
                                   size: 16,
                                 ),
@@ -464,7 +465,7 @@ class _ManHinhDangKyState extends State<ManHinhDangKy> {
                             Row(
                               children: [
                                 Icon(
-                                  _trungKhop ? Icons.check_circle_rounded : Icons.circle_outlined,
+                                  _trungKhop ? BieuTuong.dauTichTron : BieuTuong.chamTronVien,
                                   color: _trungKhop ? MauSac.chuDao : MauSac.chuMo,
                                   size: 16,
                                 ),

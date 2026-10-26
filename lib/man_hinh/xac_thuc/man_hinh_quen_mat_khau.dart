@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../giao_dien/chuan_thiet_ke/mau_sac.dart';
 import '../../giao_dien/chuan_thiet_ke/bo_goc.dart';
 import '../../giao_dien/chuan_thiet_ke/khoang_cach.dart';
+import '../../giao_dien/chuan_thiet_ke/bieu_tuong.dart';
 import '../../giao_dien/chuan_thiet_ke/dap_ung.dart';
 import '../../giao_dien/thong_bao/thong_bao_giua_man_hinh.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
@@ -104,7 +105,7 @@ class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
         backgroundColor: MauSac.nenChinh,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.chevron_left_rounded, color: MauSac.chuDao, size: 28),
+          icon: const Icon(BieuTuong.muiTenTrai, color: MauSac.chuDao, size: 28),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
@@ -153,7 +154,7 @@ class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
-                            Icons.mark_email_read_rounded,
+                            BieuTuong.emailKhoiPhuc,
                             color: MauSac.chuDao,
                             size: 26,
                           ),
@@ -210,7 +211,7 @@ class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
                       children: const [
                         Row(
                           children: [
-                            Icon(Icons.alternate_email_rounded, color: MauSac.chuDao, size: 14),
+                            Icon(BieuTuong.emailA, color: MauSac.chuDao, size: 14),
                             SizedBox(width: 4),
                             Text(
                               'ĐỊA CHỈ GMAIL XÁC THỰC',
@@ -240,9 +241,9 @@ class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
                       decoration: InputDecoration(
                         hintText: 'example@gmail.com',
                         hintStyle: const TextStyle(color: MauSac.chuMo),
-                        prefixIcon: const Icon(Icons.email_outlined, color: MauSac.chuPhu, size: 20),
+                        prefixIcon: const Icon(BieuTuong.email, color: MauSac.chuPhu, size: 20),
                         suffixIcon: IconButton(
-                          icon: const Icon(Icons.close_rounded, color: MauSac.chuPhu, size: 18),
+                          icon: const Icon(BieuTuong.dongX, color: MauSac.chuPhu, size: 18),
                           onPressed: () => _emailController.clear(),
                         ),
                         filled: true,
@@ -271,7 +272,7 @@ class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.access_time_filled_rounded, color: MauSac.canhBao, size: 16),
+                    const Icon(BieuTuong.dongHoDay, color: MauSac.canhBao, size: 16),
                     const SizedBox(width: 8),
                     Expanded(
                       child: RichText(
@@ -327,7 +328,7 @@ class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
                                 ),
                               ),
                               SizedBox(width: 8),
-                              Icon(Icons.near_me_rounded, color: Colors.black, size: 18),
+                              Icon(BieuTuong.guiThu, color: Colors.black, size: 18),
                             ],
                           ),
                   ),
@@ -348,7 +349,7 @@ class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
                     children: [
                       Row(
                         children: const [
-                          Icon(Icons.shield_outlined, color: MauSac.chuDao, size: 18),
+                          Icon(BieuTuong.khienBaoMat, color: MauSac.chuDao, size: 18),
                           SizedBox(width: 8),
                           Text(
                             'Mẹo nhận mã & Hỗ trợ',
@@ -364,7 +365,7 @@ class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: const [
-                          Icon(Icons.check_circle_rounded, color: MauSac.chuDao, size: 16),
+                          Icon(BieuTuong.dauTichTron, color: MauSac.chuDao, size: 16),
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -378,7 +379,7 @@ class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.sync_rounded, color: MauSac.phu, size: 16),
+                          const Icon(BieuTuong.dongBo, color: MauSac.phu, size: 16),
                           const SizedBox(width: 8),
                           Expanded(
                             child: RichText(
@@ -421,7 +422,7 @@ class _ManHinhQuenMatKhauState extends State<ManHinhQuenMatKhau> {
                             ),
                           ),
                           SizedBox(width: 4),
-                          Icon(Icons.arrow_forward_rounded, color: MauSac.chuDao, size: 16),
+                          Icon(BieuTuong.muiTenTien, color: MauSac.chuDao, size: 16),
                         ],
                       ),
                     ),
