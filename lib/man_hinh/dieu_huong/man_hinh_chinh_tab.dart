@@ -82,7 +82,7 @@ class _ManHinhChinhTabState extends State<ManHinhChinhTab> {
           elevation: 4,
           shape: const CircleBorder(),
           child: const Icon(
-            Icons.add_rounded,
+            BieuTuong.themGiaoDich,
             color: Colors.black,
             size: 32,
           ),

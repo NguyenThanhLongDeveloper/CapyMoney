@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../chuan_thiet_ke/mau_sac.dart';
 import '../chuan_thiet_ke/bo_goc.dart';
 import '../chuan_thiet_ke/khoang_cach.dart';
+import '../chuan_thiet_ke/bieu_tuong.dart';
+import '../chuan_thiet_ke/dap_ung.dart';
 
 /// Bảng Trượt (Bottom Sheet) Cài Đặt Thời Gian Nhắc Nhở Ghi Chép
 /// 
@@ -90,52 +92,53 @@ class _BsCaiDatNhacNhoState extends State<BsCaiDatNhacNho> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: MauSac.nenChinh,
-        borderRadius: BoGoc.borderBottomSheet,
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: KhoangCach.lToanBoLon,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Thanh kéo xám Top chỉ dẫn vuốt xuống
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: MauSac.duongVien,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: KhoangCach.vua),
-
-              // SECTION 1: HEADER TIÊU ĐỀ & NÚT X
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Cài đặt nhắc nhở',
-                    style: TextStyle(
-                      color: MauSac.chuChinh,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+    return DapUng.bocKhungForm(
+      child: Container(
+        decoration: const BoxDecoration(
+          color: MauSac.nenChinh,
+          borderRadius: BoGoc.borderBottomSheet,
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: KhoangCach.lToanBoLon,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Thanh kéo xám Top chỉ dẫn vuốt xuống
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: MauSac.duongVien,
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                  IconButton(
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    icon: const Icon(Icons.close_rounded, color: MauSac.chuPhu, size: 22),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
+                ),
+
+                const SizedBox(height: KhoangCach.vua),
+
+                // SECTION 1: HEADER TIÊU ĐỀ & NÚT X
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Cài đặt nhắc nhở',
+                      style: TextStyle(
+                        color: MauSac.chuChinh,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      icon: const Icon(BieuTuong.dongX, color: MauSac.chuPhu, size: 22),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
 
               const SizedBox(height: KhoangCach.lon),
 
@@ -186,7 +189,7 @@ class _BsCaiDatNhacNhoState extends State<BsCaiDatNhacNho> {
                                   color: MauSac.nenNoi,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(Icons.keyboard_arrow_up_rounded,
+                                child: const Icon(BieuTuong.muiTenLen,
                                     color: MauSac.chuChinh, size: 24),
                               ),
                             ),
@@ -209,7 +212,7 @@ class _BsCaiDatNhacNhoState extends State<BsCaiDatNhacNho> {
                                   color: MauSac.nenNoi,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(Icons.keyboard_arrow_down_rounded,
+                                child: const Icon(BieuTuong.muiTenXuong,
                                     color: MauSac.chuChinh, size: 24),
                               ),
                             ),
@@ -254,7 +257,7 @@ class _BsCaiDatNhacNhoState extends State<BsCaiDatNhacNho> {
                                   color: MauSac.nenNoi,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(Icons.keyboard_arrow_up_rounded,
+                                child: const Icon(BieuTuong.muiTenLen,
                                     color: MauSac.chuChinh, size: 24),
                               ),
                             ),
@@ -277,7 +280,7 @@ class _BsCaiDatNhacNhoState extends State<BsCaiDatNhacNho> {
                                   color: MauSac.nenNoi,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(Icons.keyboard_arrow_down_rounded,
+                                child: const Icon(BieuTuong.muiTenXuong,
                                     color: MauSac.chuChinh, size: 24),
                               ),
                             ),
@@ -317,7 +320,7 @@ class _BsCaiDatNhacNhoState extends State<BsCaiDatNhacNho> {
                         color: MauSac.nenNoi,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.notifications_active_rounded,
+                      child: const Icon(BieuTuong.thongBaoChuong,
                           color: MauSac.canhBao, size: 20),
                     ),
                     const SizedBox(width: 12),
@@ -388,7 +391,7 @@ class _BsCaiDatNhacNhoState extends State<BsCaiDatNhacNho> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.check_circle_rounded, color: Colors.black, size: 18),
+                            const Icon(BieuTuong.dauTichTron, color: Colors.black, size: 18),
                             const SizedBox(width: 6),
                             FittedBox(
                               child: Text(
@@ -411,6 +414,6 @@ class _BsCaiDatNhacNhoState extends State<BsCaiDatNhacNho> {
           ),
         ),
       ),
-    );
+    ));
   }
 }

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../chuan_thiet_ke/mau_sac.dart';
 import '../chuan_thiet_ke/bo_goc.dart';
 import '../chuan_thiet_ke/khoang_cach.dart';
+import '../chuan_thiet_ke/bieu_tuong.dart';
+import '../chuan_thiet_ke/dap_ung.dart';
 import '../thong_bao/thong_bao_giua_man_hinh.dart';
 import '../../mo_hinh/tai_khoan_ngan_hang_model.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
@@ -166,93 +168,205 @@ class _BsLienKetTaiKhoanState extends State<BsLienKetTaiKhoan> {
     // Tự động đẩy khung Bottom Sheet lên khi bàn phím ảo xuất hiện
     final keyboardSpace = MediaQuery.of(context).viewInsets.bottom;
 
-    return Container(
-      padding: EdgeInsets.only(bottom: keyboardSpace),
-      decoration: const BoxDecoration(
-        color: MauSac.nenChinh,
-        borderRadius: BoGoc.borderBottomSheet,
-      ),
-      child: SafeArea(
-        child: SingleChildScrollView(
-          padding: KhoangCach.lToanBoLon,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Thanh kéo xám Top chỉ dẫn vuốt xuống
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: MauSac.duongVien,
-                    borderRadius: BorderRadius.circular(2),
+    return DapUng.bocKhungForm(
+      child: Container(
+        padding: EdgeInsets.only(bottom: keyboardSpace),
+        decoration: const BoxDecoration(
+          color: MauSac.nenChinh,
+          borderRadius: BoGoc.borderBottomSheet,
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: KhoangCach.lToanBoLon,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Thanh kéo xám Top chỉ dẫn vuốt xuống
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: MauSac.duongVien,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-              ),
 
-              const SizedBox(height: KhoangCach.vua),
+                const SizedBox(height: KhoangCach.vua),
 
-              // SECTION 1: HEADER BẢNG TRƯỢT & TIÊU ĐỀ
-              Row(
-                children: [
-                  IconButton(
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    icon: const Icon(Icons.chevron_left_rounded, color: MauSac.chuDao, size: 28),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: const [
-                        Text(
-                          'Tài khoản & Ví nhận tiền',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: MauSac.chuChinh,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                // SECTION 1: HEADER BẢNG TRƯỢT & TIÊU ĐỀ
+                Row(
+                  children: [
+                    IconButton(
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      icon: const Icon(BieuTuong.muiTenTrai, color: MauSac.chuDao, size: 28),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: const [
+                          Text(
+                            'Tài khoản & Ví nhận tiền',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: MauSac.chuChinh,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Quản lý phương thức và nguồn nhận tiền',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: MauSac.chuPhu,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      icon: const Icon(BieuTuong.dongX, color: MauSac.chuPhu, size: 22),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: KhoangCach.lon),
+
+                // SECTION 2: DANH SÁCH TÀI KHOẢN VÍ THỰC TẾ TỪ SUPABASE
+                if (_dangTaiDanhSach)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: CircularProgressIndicator(color: MauSac.chuDao),
+                    ),
+                  )
+                else if (_danhSachTaiKhoan.isEmpty)
+                  Container(
+                    width: double.infinity,
+                    padding: KhoangCach.lToanBoChuan,
+                    decoration: BoxDecoration(
+                      color: MauSac.nenThe,
+                      borderRadius: BoGoc.borderVua,
+                      border: Border.all(color: MauSac.duongVienNhat),
+                    ),
+                    child: Column(
+                      children: const [
+                        Icon(BieuTuong.viRong, color: MauSac.chuPhu, size: 32),
+                        SizedBox(height: 8),
+                        Text(
+                          'Chưa có tài khoản / ví liên kết nào',
+                          style: TextStyle(color: MauSac.chuChinh, fontWeight: FontWeight.bold, fontSize: 14),
                         ),
                         SizedBox(height: 2),
                         Text(
-                          'Quản lý phương thức và nguồn nhận tiền',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: MauSac.chuPhu,
-                            fontSize: 11,
-                          ),
+                          'Thêm tài khoản ngân hàng hoặc ví điện tử bên dưới',
+                          style: TextStyle(color: MauSac.chuPhu, fontSize: 12),
                         ),
                       ],
                     ),
+                  )
+                else
+                  Column(
+                    children: _danhSachTaiKhoan.map((tk) {
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: KhoangCach.lToanBoChuan,
+                        decoration: BoxDecoration(
+                          color: MauSac.nenThe,
+                          borderRadius: BoGoc.borderVua,
+                          border: Border.all(
+                            color: tk.laNhanChinh ? MauSac.chuDao : MauSac.duongVienNhat,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: MauSac.nenNoi,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(BieuTuong.nganSach,
+                                      color: MauSac.phu, size: 20),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        tk.tenNganHang,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: MauSac.chuChinh,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${tk.soTaiKhoan} • ${tk.tenChuTaiKhoan}',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: MauSac.chuPhu,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                IconButton(
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  icon: const Icon(BieuTuong.xoaVien, color: MauSac.chiTieu, size: 20),
+                                  onPressed: () => _xoaTaiKhoan(tk.id),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: GestureDetector(
+                                onTap: () => _datLamNhanChinh(tk.id),
+                                child: Text(
+                                  tk.laNhanChinh ? '● Tài khoản chính' : 'Đặt làm tài khoản chính',
+                                  style: TextStyle(
+                                    color: tk.laNhanChinh ? MauSac.chuDao : MauSac.phu,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
                   ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    icon: const Icon(Icons.close_rounded, color: MauSac.chuPhu, size: 22),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
 
-              const SizedBox(height: KhoangCach.lon),
+                const SizedBox(height: KhoangCach.vua),
 
-              // SECTION 2: DANH SÁCH TÀI KHOẢN VÍ THỰC TẾ TỪ SUPABASE
-              if (_dangTaiDanhSach)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20),
-                    child: CircularProgressIndicator(color: MauSac.chuDao),
-                  ),
-                )
-              else if (_danhSachTaiKhoan.isEmpty)
+                // SECTION 3: FORM NHẬP TÀI KHOẢN HOẶC VÍ MỚI
                 Container(
-                  width: double.infinity,
                   padding: KhoangCach.lToanBoChuan,
                   decoration: BoxDecoration(
                     color: MauSac.nenThe,
@@ -260,122 +374,11 @@ class _BsLienKetTaiKhoanState extends State<BsLienKetTaiKhoan> {
                     border: Border.all(color: MauSac.duongVienNhat),
                   ),
                   child: Column(
-                    children: const [
-                      Icon(Icons.account_balance_wallet_outlined, color: MauSac.chuPhu, size: 32),
-                      SizedBox(height: 8),
-                      Text(
-                        'Chưa có tài khoản / ví liên kết nào',
-                        style: TextStyle(color: MauSac.chuChinh, fontWeight: FontWeight.bold, fontSize: 14),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Thêm tài khoản ngân hàng hoặc ví điện tử bên dưới',
-                        style: TextStyle(color: MauSac.chuPhu, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                )
-              else
-                Column(
-                  children: _danhSachTaiKhoan.map((tk) {
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: KhoangCach.lToanBoChuan,
-                      decoration: BoxDecoration(
-                        color: MauSac.nenThe,
-                        borderRadius: BoGoc.borderVua,
-                        border: Border.all(
-                          color: tk.laNhanChinh ? MauSac.chuDao : MauSac.duongVienNhat,
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: MauSac.nenNoi,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Icon(Icons.account_balance_wallet_rounded,
-                                    color: MauSac.phu, size: 20),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      tk.tenNganHang,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: MauSac.chuChinh,
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      '${tk.soTaiKhoan} • ${tk.tenChuTaiKhoan}',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: MauSac.chuPhu,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              IconButton(
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                icon: const Icon(Icons.delete_outline_rounded, color: MauSac.chiTieu, size: 20),
-                                onPressed: () => _xoaTaiKhoan(tk.id),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: GestureDetector(
-                              onTap: () => _datLamNhanChinh(tk.id),
-                              child: Text(
-                                tk.laNhanChinh ? '● Tài khoản chính' : 'Đặt làm tài khoản chính',
-                                style: TextStyle(
-                                  color: tk.laNhanChinh ? MauSac.chuDao : MauSac.phu,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
-
-              const SizedBox(height: KhoangCach.vua),
-
-              // SECTION 3: FORM NHẬP TÀI KHOẢN HOẶC VÍ MỚI
-              Container(
-                padding: KhoangCach.lToanBoChuan,
-                decoration: BoxDecoration(
-                  color: MauSac.nenThe,
-                  borderRadius: BoGoc.borderVua,
-                  border: Border.all(color: MauSac.duongVienNhat),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: const [
-                        Icon(Icons.add_card_rounded, color: MauSac.chuDao, size: 20),
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: const [
+                          Icon(BieuTuong.themVi, color: MauSac.chuDao, size: 20),
                         SizedBox(width: 8),
                         Text(
                           'Thêm tài khoản hoặc ví mới',
@@ -536,7 +539,7 @@ class _BsLienKetTaiKhoanState extends State<BsLienKetTaiKhoan> {
                             : Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: const [
-                                  Icon(Icons.check_circle_rounded, color: Colors.black, size: 16),
+                                  Icon(BieuTuong.dauTichTron, color: Colors.black, size: 16),
                                   SizedBox(width: 4),
                                   FittedBox(
                                     child: Text(
@@ -559,6 +562,7 @@ class _BsLienKetTaiKhoanState extends State<BsLienKetTaiKhoan> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

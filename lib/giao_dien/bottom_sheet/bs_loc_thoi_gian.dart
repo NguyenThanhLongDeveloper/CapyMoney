@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../chuan_thiet_ke/mau_sac.dart';
 import '../chuan_thiet_ke/bo_goc.dart';
 import '../chuan_thiet_ke/khoang_cach.dart';
+import '../chuan_thiet_ke/dap_ung.dart';
 
 /// Enum phân loại các mốc bộ lọc thời gian
 enum LoaiLocThoiGian {
@@ -144,18 +145,19 @@ class _BsLocThoiGianState extends State<BsLocThoiGian> {
   Widget build(BuildContext context) {
     final now = DateTime.now();
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: MauSac.nenChinh,
-        borderRadius: BoGoc.borderBottomSheet,
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: KhoangCach.lToanBoLon,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+    return DapUng.bocKhungForm(
+      child: Container(
+        decoration: const BoxDecoration(
+          color: MauSac.nenChinh,
+          borderRadius: BoGoc.borderBottomSheet,
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: KhoangCach.lToanBoLon,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               // Thanh kéo xám Top
               Center(
                 child: Container(
@@ -314,8 +316,9 @@ class _BsLocThoiGianState extends State<BsLocThoiGian> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   /// Item Tab Mode
   Widget _taoTabModeItem(String key, String nhan) {

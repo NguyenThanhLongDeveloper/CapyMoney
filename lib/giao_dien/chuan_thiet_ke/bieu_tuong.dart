@@ -29,6 +29,9 @@ class BieuTuong {
   /// Nút Thêm giao dịch (+)
   static const IconData themGiaoDich = Icons.add_rounded;
 
+  /// Thêm tròn viền
+  static const IconData themTronVien = Icons.add_circle_outline_rounded;
+
   /// Thu nhập (Mũi tên xuống / Nạp vào)
   static const IconData thuNhap = Icons.arrow_downward_rounded;
 
@@ -73,6 +76,12 @@ class BieuTuong {
 
   /// Tự động / Lấp lánh
   static const IconData lapLanh = Icons.auto_awesome_rounded;
+
+  /// Xu hướng giảm
+  static const IconData xuHuongGiam = Icons.trending_down_rounded;
+
+  /// Xu hướng tăng
+  static const IconData xuHuongTang = Icons.trending_up_rounded;
 
   // ==========================================
   // BIỂU TƯỢNG DANH MỤC THU CHI (CATEGORIES)
@@ -223,6 +232,12 @@ class BieuTuong {
   /// Số điện thoại
   static const IconData dienThoai = Icons.phone_outlined;
 
+  /// Điện thoại di động
+  static const IconData dienThoaiDiDong = Icons.phone_android_rounded;
+
+  /// Số tài khoản / Số đếm
+  static const IconData soTaiKhoan = Icons.numbers_rounded;
+
   /// Máy ảnh Camera
   static const IconData mayAnh = Icons.camera_alt_rounded;
 
@@ -234,6 +249,9 @@ class BieuTuong {
 
   /// Chỉnh sửa / Viết
   static const IconData chinhSua = Icons.edit_rounded;
+
+  /// Chỉnh sửa viền
+  static const IconData chinhSuaVien = Icons.edit_outlined;
 
   /// Chỉnh sửa Ghi chú
   static const IconData ghiChuSua = Icons.edit_note_rounded;
@@ -258,6 +276,9 @@ class BieuTuong {
 
   /// Gửi thư
   static const IconData guiThu = Icons.near_me_rounded;
+
+  /// Đăng xuất
+  static const IconData dangXuat = Icons.logout_rounded;
 
   /// Tài khoản Ngân hàng
   static const IconData nganHang = Icons.account_balance_rounded;
