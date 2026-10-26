@@ -4,6 +4,7 @@ import '../../giao_dien/chuan_thiet_ke/bo_goc.dart';
 import '../../giao_dien/chuan_thiet_ke/bieu_tuong.dart';
 import '../tai_khoan/tab_tai_khoan.dart';
 import '../tong_quan/tab_tong_quan.dart';
+import '../bao_cao/tab_bao_cao.dart';
 import '../giao_dich/man_hinh_them_giao_dich.dart';
 
 /// Màn hình Cấu trúc Chính (Main Navigation Screen)
@@ -42,12 +43,7 @@ class _ManHinhChinhTabState extends State<ManHinhChinhTab> {
     ),
 
     // Tab 3: Báo cáo & Phân tích
-    const Center(
-      child: Text(
-        'Màn hình Báo cáo & Phân tích',
-        style: TextStyle(color: MauSac.chuChinh, fontSize: 16),
-      ),
-    ),
+    const TabBaoCao(),
 
     // Tab 4: Tôi (Profile cá nhân & Cài đặt)
     const TabTaiKhoan(),
