@@ -144,86 +144,6 @@ class _TabBaoCaoState extends State<TabBaoCao> {
     return amount.toInt().toString();
   }
 
-  /// Lấy tên danh mục từ ID hoặc tên mặc định (Đồng bộ chuẩn TabTổngQuan)
-  String _layTenDanhMuc(String? danhMucId, [bool isThu = false]) {
-    if (danhMucId != null && danhMucId.isNotEmpty) {
-      final dmList = _danhSachDanhMuc.where((d) => d.id == danhMucId).toList();
-      if (dmList.isNotEmpty) {
-        return dmList.first.tenDanhMuc;
-      }
-    }
-    return isThu ? 'Khoản thu nhập' : 'Khoản chi tiêu';
-  }
-
-  /// Lấy Icon đại diện cho Danh Mục từ CSDL hoặc Tên danh mục
-  IconData _layIconDanhMuc(String? danhMucId, [bool isThu = false]) {
-    if (danhMucId != null && danhMucId.isNotEmpty) {
-      final dmList = _danhSachDanhMuc.where((d) => d.id == danhMucId).toList();
-      if (dmList.isNotEmpty) {
-        final dm = dmList.first;
-        final key = dm.bieuTuong.toLowerCase().trim();
-        final name = dm.tenDanhMuc.toLowerCase().trim();
-
-        if (key == 'restaurant' || key == 'food' || key == 'utensils' || key.contains('an_uong')) {
-          return BieuTuong.antUong;
-        }
-        if (key == 'directions_car' || key == 'car' || key == 'di_lai' || key == 'xang_xe' || key == 'traffic') {
-          return BieuTuong.diLai;
-        }
-        if (key == 'two_wheeler' || key == 'motorcycle' || key == 'xe_may') {
-          return BieuTuong.xeMay;
-        }
-        if (key == 'shopping_bag' || key == 'shopping_cart' || key == 'cart' || key.contains('mua_sam')) {
-          return BieuTuong.muaSam;
-        }
-        if (key == 'receipt_long' || key == 'receipt' || key.contains('hoa_don') || key.contains('house') || key.contains('home')) {
-          return BieuTuong.hoaDon;
-        }
-        if (key == 'sports_esports' || key == 'game' || key.contains('giai_tri')) {
-          return BieuTuong.giaiTri;
-        }
-        if (key == 'medical_services' || key == 'medical' || key.contains('suc_khoe')) {
-          return BieuTuong.sucKhoe;
-        }
-        if (key == 'school' || key.contains('hoc_tap') || key.contains('education')) {
-          return BieuTuong.hocTap;
-        }
-        if (key == 'local_cafe' || key == 'coffee' || key.contains('cafe')) {
-          return BieuTuong.caPhe;
-        }
-        if (key == 'account_balance' || key == 'bank' || key.contains('luong') || key.contains('salary') || key.contains('work')) {
-          return BieuTuong.nganHang;
-        }
-
-        if (name.contains('ăn uống') || name.contains('nhà hàng') || name.contains('sáng') || name.contains('trưa') || name.contains('tối')) {
-          return BieuTuong.antUong;
-        }
-        if (name.contains('di chuyển') || name.contains('xăng xe') || name.contains('grab') || name.contains('xe')) {
-          return BieuTuong.diLai;
-        }
-        if (name.contains('mua sắm') || name.contains('siêu thị') || name.contains('cá nhân')) {
-          return BieuTuong.muaSam;
-        }
-        if (name.contains('nhà cửa') || name.contains('hóa đơn') || name.contains('điện') || name.contains('nước') || name.contains('internet')) {
-          return BieuTuong.hoaDon;
-        }
-        if (name.contains('lương') || name.contains('kpi') || name.contains('thưởng')) {
-          return BieuTuong.nganHang;
-        }
-        if (name.contains('giải trí') || name.contains('phim') || name.contains('game')) {
-          return BieuTuong.giaiTri;
-        }
-        if (name.contains('sức khỏe') || name.contains('thuốc')) {
-          return BieuTuong.sucKhoe;
-        }
-        if (name.contains('học tập') || name.contains('giáo dục')) {
-          return BieuTuong.hocTap;
-        }
-      }
-    }
-    return isThu ? BieuTuong.nganHang : BieuTuong.gioHang;
-  }
-
   @override
   Widget build(BuildContext context) {
     // 1. Lọc giao dịch trong khoảng thời gian được chọn
@@ -279,7 +199,7 @@ class _TabBaoCaoState extends State<TabBaoCao> {
       final double percent = tongChiThangNay > 0 ? (sumTien / tongChiThangNay) * 100 : 0;
       dsCoCau.add(MucCoCauChiTieu(
         danhMucId: dmId,
-        tenDanhMuc: _layTenDanhMuc(dmId),
+        tenDanhMuc: _danhSachDanhMuc.layTen(dmId),
         soTien: sumTien,
         soGiaoDich: mapSoGiaoDichDanhMuc[dmId] ?? 0,
         phanTram: percent,
@@ -779,7 +699,7 @@ class _TabBaoCaoState extends State<TabBaoCao> {
                         else
                           Column(
                             children: top3KhoanChi.take(3).map((gd) {
-                              final tenDM = _layTenDanhMuc(gd.danhMucId);
+                              final tenDM = _danhSachDanhMuc.layTen(gd.danhMucId);
 
                               return Container(
                                 margin: const EdgeInsets.only(bottom: 10),
@@ -791,7 +711,7 @@ class _TabBaoCaoState extends State<TabBaoCao> {
                                 ),
                                 child: Row(
                                   children: [
-                                    // Icon Danh mục (Đồng bộ chuẩn TabTổngQuan)
+                                    // Icon Danh mục OOP
                                     Container(
                                       padding: const EdgeInsets.all(10),
                                       decoration: BoxDecoration(
@@ -799,7 +719,7 @@ class _TabBaoCaoState extends State<TabBaoCao> {
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Icon(
-                                        _layIconDanhMuc(gd.danhMucId, false),
+                                        _danhSachDanhMuc.layIcon(gd.danhMucId),
                                         color: MauSac.chiTieu,
                                         size: 20,
                                       ),

@@ -598,7 +598,7 @@ class _ManHinhThemGiaoDichState extends State<ManHinhThemGiaoDich> {
                                   borderRadius: BoGoc.borderNho,
                                 ),
                                 child: Icon(
-                                  _layIconData(dm.bieuTuong),
+                                  dm.iconData,
                                   color: isSelected
                                       ? Colors.black
                                       : MauSac.chuPhu,
@@ -1094,29 +1094,5 @@ class _ManHinhThemGiaoDichState extends State<ManHinhThemGiaoDich> {
         onPressed: _xoaTrangSoTien,
       ),
     );
-  }
-
-  /// Helper map tên icon chuỗi sang IconData
-  IconData _layIconData(String bieuTuongKey) {
-    switch (bieuTuongKey) {
-      case 'antUong':
-        return BieuTuong.antUong;
-      case 'diLai':
-        return BieuTuong.diLai;
-      case 'muaSam':
-        return BieuTuong.muaSam;
-      case 'hoaDon':
-        return BieuTuong.hoaDon;
-      case 'giaTri':
-        return BieuTuong.giaTri;
-      case 'giaiTri':
-        return BieuTuong.giaiTri;
-      case 'sucKhoe':
-        return BieuTuong.sucKhoe;
-      case 'hocTap':
-        return BieuTuong.hocTap;
-      default:
-        return Icons.category_rounded;
-    }
   }
 }

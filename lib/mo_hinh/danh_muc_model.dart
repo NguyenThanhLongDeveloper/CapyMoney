@@ -1,3 +1,6 @@
+import 'package:flutter/material.dart';
+import '../giao_dien/chuan_thiet_ke/bieu_tuong.dart';
+
 /// Mô hình dữ liệu Danh mục Thu Chi (Category Model)
 /// 
 /// Phân loại giao dịch (Ăn uống, Di lại, Mua sắm, Lương...) trong bảng `danh_muc`.
@@ -14,7 +17,7 @@ class DanhMucModel {
   /// Loại danh mục: `chi_tieu` hoặc `thu_nhap`
   final String loai;
 
-  /// Tên icon đại diện (Icon key)
+  /// Tên icon đại diện (Icon key trong Supabase)
   final String bieuTuong;
 
   /// Mã màu HEX định dạng `#RRGGBB`
@@ -51,5 +54,72 @@ class DanhMucModel {
       'bieu_tuong': bieuTuong,
       'mau_sac': mauSac,
     };
+  }
+
+  /// Getter OOP: Tự chuyển đổi thuộc tính `bieuTuong` hoặc `tenDanhMuc` ra `IconData`
+  IconData get iconData {
+    final key = bieuTuong.trim();
+    final keyLower = key.toLowerCase();
+    final name = tenDanhMuc.toLowerCase().trim();
+
+    // 1. Ánh xạ trực tiếp chuẩn 100% tên cột `bieu_tuong` trong CSDL Supabase
+    if (key == 'giaTri' || keyLower == 'giatri' || keyLower.contains('luong')) {
+      return BieuTuong.giaTri; // ⭐ Stars / Thưởng KPI & Lương
+    }
+    if (key == 'thuong' || keyLower == 'thuong') {
+      return BieuTuong.thuong; // 💵 Thưởng & Thu nhập phụ
+    }
+    if (key == 'sucKhoe' || keyLower == 'suckhoe' || keyLower == 'medical_services') {
+      return BieuTuong.sucKhoe; // 💊 Sức khỏe & Y tế
+    }
+    if (key == 'antUong' || keyLower == 'antuong' || keyLower == 'restaurant' || keyLower == 'food' || keyLower.contains('an_uong')) {
+      return BieuTuong.antUong; // 🍴 Ăn uống & Nhà hàng
+    }
+    if (key == 'diLai' || keyLower == 'dilai' || keyLower == 'directions_car' || keyLower == 'car' || keyLower.contains('di_lai') || keyLower.contains('xang_xe')) {
+      return BieuTuong.diLai; // 🚗 Di chuyển & Xăng xe
+    }
+    if (key == 'muaSam' || keyLower == 'muasam' || keyLower == 'shopping_bag' || keyLower.contains('mua_sam')) {
+      return BieuTuong.muaSam; // 🛍 Mua sắm & Siêu thị
+    }
+    if (key == 'giaiTri' || keyLower == 'giaitri' || keyLower == 'sports_esports' || keyLower.contains('giai_tri')) {
+      return BieuTuong.giaiTri; // 🎮 Giải trí & Thể thao
+    }
+    if (key == 'hoaDon' || keyLower == 'hoadon' || keyLower == 'receipt_long' || keyLower.contains('hoa_don')) {
+      return BieuTuong.hoaDon; // 📄 Hóa đơn & Tiện ích
+    }
+    if (key == 'caPhe' || keyLower == 'caphe' || keyLower == 'local_cafe' || keyLower.contains('cafe')) {
+      return BieuTuong.caPhe; // ☕ Cà phê / Giải khát
+    }
+    if (key == 'xeMay' || keyLower == 'xemay' || keyLower == 'two_wheeler') {
+      return BieuTuong.xeMay; // 🛵 Xe máy
+    }
+
+
+
+    return loai == 'thu_nhap' ? BieuTuong.nganHang : BieuTuong.gioHang;
+  }
+}
+
+/// Extension OOP hỗ trợ danh sách `List<DanhMucModel>` tra cứu tên & icon nhanh gọn
+extension DanhMucListX on List<DanhMucModel> {
+  /// Tìm đối tượng danh mục theo `danhMucId`
+  DanhMucModel? timTheoId(String? danhMucId) {
+    if (danhMucId == null || danhMucId.isEmpty) return null;
+    final list = where((d) => d.id == danhMucId).toList();
+    return list.isNotEmpty ? list.first : null;
+  }
+
+  /// Lấy IconData của danh mục theo `danhMucId` (Tự động fallback)
+  IconData layIcon(String? danhMucId, {bool isThu = false}) {
+    final dm = timTheoId(danhMucId);
+    if (dm != null) return dm.iconData;
+    return isThu ? BieuTuong.nganHang : BieuTuong.gioHang;
+  }
+
+  /// Lấy Tên danh mục theo `danhMucId` (Tự động fallback)
+  String layTen(String? danhMucId, {bool isThu = false}) {
+    final dm = timTheoId(danhMucId);
+    if (dm != null) return dm.tenDanhMuc;
+    return isThu ? 'Khoản thu nhập' : 'Khoản chi tiêu';
   }
 }

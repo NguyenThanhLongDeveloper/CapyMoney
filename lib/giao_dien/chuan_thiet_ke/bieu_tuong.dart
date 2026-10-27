@@ -108,11 +108,8 @@ class BieuTuong {
   /// Sức khỏe, thuốc men
   static const IconData sucKhoe = Icons.medical_services_rounded;
 
-  /// Giáo dục, học tập
-  static const IconData hocTap = Icons.school_rounded;
-
-  /// Thẻ khác / Lưới danh mục
-  static const IconData danhMucKhac = Icons.category_rounded;
+  /// thưởng, thu nhập phụ
+  static const IconData thuong = Icons.category_rounded;
 
   // ==========================================
   // XÁC THỰC & BẢO MẬT (AUTH & SECURITY)
