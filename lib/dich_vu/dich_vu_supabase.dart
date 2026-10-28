@@ -486,6 +486,49 @@ class DichVuSupabase {
     return giaoDichMoi;
   }
 
+  /// Xóa giao dịch và tự động hoàn trả số dư ví tương ứng
+  static Future<bool> xoaGiaoDich(GiaoDichModel model) async {
+    try {
+      // 1. Hoàn trả số dư ví (so_du)
+      if (model.taiKhoanId != null && model.taiKhoanId!.isNotEmpty) {
+        try {
+          final tkRes = await client
+              .from(DuongDanApi.bangTaiKhoanNganHang)
+              .select('so_du')
+              .eq('id', model.taiKhoanId!)
+              .maybeSingle();
+
+          if (tkRes != null) {
+            final double soDuHienTai = (tkRes['so_du'] as num?)?.toDouble() ?? 0.0;
+            // Xóa khoản chi -> cộng trả lại tiền vào ví
+            // Xóa khoản thu -> trừ trả lại tiền khỏi ví
+            final double soDuKhaiHoan = model.loaiGiaoDich == 'thu_nhap'
+                ? soDuHienTai - model.soTien
+                : soDuHienTai + model.soTien;
+
+            await client
+                .from(DuongDanApi.bangTaiKhoanNganHang)
+                .update({'so_du': soDuKhaiHoan})
+                .eq('id', model.taiKhoanId!);
+          }
+        } catch (e) {
+          debugPrint('Lỗi hoàn trả số dư ví khi xóa giao dịch: $e');
+        }
+      }
+
+      // 2. Xóa bản ghi giao dịch
+      await client
+          .from(DuongDanApi.bangGiaoDich)
+          .delete()
+          .eq('id', model.id);
+
+      return true;
+    } catch (e) {
+      debugPrint('Lỗi xóa giao dịch: $e');
+      return false;
+    }
+  }
+
   /// Tải ảnh hóa đơn chứng từ lên Storage Bucket 'hoa_don'
   static Future<String?> taiHoaDonLenStorage(XFile xFile, String userId) async {
     if (userId.isEmpty) return null;

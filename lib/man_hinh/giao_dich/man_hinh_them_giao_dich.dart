@@ -382,7 +382,7 @@ class _ManHinhThemGiaoDichState extends State<ManHinhThemGiaoDich> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.trending_down_rounded,
+                                Icon(BieuTuong.xuHuongGiam,
                                     color: isChiTieu ? MauSac.chiTieu : MauSac.chuPhu, size: 18),
                                 const SizedBox(width: 6),
                                 Text(
@@ -412,7 +412,7 @@ class _ManHinhThemGiaoDichState extends State<ManHinhThemGiaoDich> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.trending_up_rounded,
+                                Icon(BieuTuong.xuHuongTang,
                                     color: !isChiTieu ? Colors.black : MauSac.chuPhu, size: 18),
                                 const SizedBox(width: 6),
                                 Text(

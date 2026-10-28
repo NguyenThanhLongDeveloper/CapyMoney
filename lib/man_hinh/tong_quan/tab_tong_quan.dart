@@ -10,6 +10,7 @@ import '../../mo_hinh/tai_khoan_ngan_hang_model.dart';
 import '../../mo_hinh/danh_muc_model.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
 import '../giao_dich/man_hinh_danh_sach_giao_dich.dart';
+import '../giao_dich/man_hinh_chi_tiet_giao_dich.dart';
 
 /// Tab 1: Màn Hình Tổng Quan Tài Chính (Dashboard Screen)
 /// 
@@ -660,15 +661,27 @@ class _TabTongQuanState extends State<TabTongQuan> {
                     Column(
                       children: _danhSachGiaoDich.take(5).map((gd) {
                         final isThu = gd.loaiGiaoDich == 'thu_nhap';
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 10),
-                          padding: KhoangCach.lToanBoChuan,
-                          decoration: BoxDecoration(
-                            color: MauSac.nenThe,
-                            borderRadius: BoGoc.borderVua,
-                            border: Border.all(color: MauSac.duongVienNhat),
-                          ),
-                          child: Row(
+                        return GestureDetector(
+                          onTap: () async {
+                            final res = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ManHinhChiTietGiaoDich(giaoDich: gd),
+                              ),
+                            );
+                            if (res == true) {
+                              _loadDuLieuDashboard();
+                            }
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 10),
+                            padding: KhoangCach.lToanBoChuan,
+                            decoration: BoxDecoration(
+                              color: MauSac.nenThe,
+                              borderRadius: BoGoc.borderVua,
+                              border: Border.all(color: MauSac.duongVienNhat),
+                            ),
+                            child: Row(
                             children: [
                               Container(
                                 padding: const EdgeInsets.all(10),
@@ -730,9 +743,10 @@ class _TabTongQuanState extends State<TabTongQuan> {
                               ),
                             ],
                           ),
-                        );
-                      }).toList(),
-                    ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
 
                   const SizedBox(height: KhoangCach.lon),
                 ],

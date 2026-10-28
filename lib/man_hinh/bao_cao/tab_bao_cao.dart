@@ -10,6 +10,7 @@ import '../../giao_dien/bottom_sheet/bs_loc_thoi_gian.dart';
 import '../../mo_hinh/giao_dich_model.dart';
 import '../../mo_hinh/danh_muc_model.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
+import '../giao_dich/man_hinh_chi_tiet_giao_dich.dart';
 
 /// Item thống kê chi tiêu theo danh mục
 class MucCoCauChiTieu {
@@ -565,7 +566,7 @@ class _TabBaoCaoState extends State<TabBaoCao> {
                                 ),
                               );
                             }).toList(),
-                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -701,15 +702,27 @@ class _TabBaoCaoState extends State<TabBaoCao> {
                             children: top3KhoanChi.take(3).map((gd) {
                               final tenDM = _danhSachDanhMuc.layTen(gd.danhMucId);
 
-                              return Container(
-                                margin: const EdgeInsets.only(bottom: 10),
-                                padding: KhoangCach.lToanBoChuan,
-                                decoration: BoxDecoration(
-                                  color: MauSac.nenNoi,
-                                  borderRadius: BoGoc.borderVua,
-                                  border: Border.all(color: MauSac.duongVienNhat),
-                                ),
-                                child: Row(
+                              return GestureDetector(
+                                onTap: () async {
+                                  final res = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => ManHinhChiTietGiaoDich(giaoDich: gd),
+                                    ),
+                                  );
+                                  if (res == true) {
+                                    _loadDuLieu();
+                                  }
+                                },
+                                child: Container(
+                                  margin: const EdgeInsets.only(bottom: 10),
+                                  padding: KhoangCach.lToanBoChuan,
+                                  decoration: BoxDecoration(
+                                    color: MauSac.nenNoi,
+                                    borderRadius: BoGoc.borderVua,
+                                    border: Border.all(color: MauSac.duongVienNhat),
+                                  ),
+                                  child: Row(
                                   children: [
                                     // Icon Danh mục OOP
                                     Container(
@@ -767,9 +780,9 @@ class _TabBaoCaoState extends State<TabBaoCao> {
                                     ),
                                   ],
                                 ),
-                              );
+                              ));
                             }).toList(),
-                          ),
+                        ),
                       ],
                     ),
                   ),

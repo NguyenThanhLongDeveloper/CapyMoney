@@ -10,6 +10,7 @@ import '../../mo_hinh/danh_muc_model.dart';
 import '../../mo_hinh/tai_khoan_ngan_hang_model.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
 import 'man_hinh_them_giao_dich.dart';
+import 'man_hinh_chi_tiet_giao_dich.dart';
 
 /// Màn Hình Lịch Sử Tất Cả Giao Dịch (Transaction History Screen)
 /// 
@@ -504,7 +505,7 @@ class _ManHinhDanhSachGiaoDichState extends State<ManHinhDanhSachGiaoDich> {
                         _taoChipFilter('chi_tieu', 'Chi tiêu'),
                         _taoChipFilter('thu_nhap', 'Thu nhập'),
                         ..._danhSachDanhMuc.take(6).map((dm) {
-                          return _taoChipFilter(dm.id, '🍴 ${dm.tenDanhMuc}');
+                          return _taoChipFilter(dm.id, dm.tenDanhMuc);
                         }),
                       ],
                     ),
@@ -573,15 +574,27 @@ class _ManHinhDanhSachGiaoDichState extends State<ManHinhDanhSachGiaoDich> {
                                 final tenDM = _danhSachDanhMuc.layTen(gd.danhMucId, isThu: isThu);
                                 final tenVi = _layTenVi(gd.taiKhoanId);
 
-                                return Container(
-                                  margin: const EdgeInsets.only(bottom: 10),
-                                  padding: KhoangCach.lToanBoChuan,
-                                  decoration: BoxDecoration(
-                                    color: MauSac.nenThe,
-                                    borderRadius: BoGoc.borderVua,
-                                    border: Border.all(color: MauSac.duongVienNhat),
-                                  ),
-                                  child: Row(
+                                return GestureDetector(
+                                  onTap: () async {
+                                    final res = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => ManHinhChiTietGiaoDich(giaoDich: gd),
+                                      ),
+                                    );
+                                    if (res == true) {
+                                      _loadDuLieu();
+                                    }
+                                  },
+                                  child: Container(
+                                    margin: const EdgeInsets.only(bottom: 10),
+                                    padding: KhoangCach.lToanBoChuan,
+                                    decoration: BoxDecoration(
+                                      color: MauSac.nenThe,
+                                      borderRadius: BoGoc.borderVua,
+                                      border: Border.all(color: MauSac.duongVienNhat),
+                                    ),
+                                    child: Row(
                                     children: [
                                       // Icon đại diện
                                       Container(
@@ -656,9 +669,10 @@ class _ManHinhDanhSachGiaoDichState extends State<ManHinhDanhSachGiaoDich> {
                                       ),
                                     ],
                                   ),
-                                );
-                              }).toList(),
-                            ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
 
                             const SizedBox(height: 6),
                           ],
