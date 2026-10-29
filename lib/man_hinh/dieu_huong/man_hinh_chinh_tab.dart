@@ -4,6 +4,7 @@ import '../../giao_dien/chuan_thiet_ke/bo_goc.dart';
 import '../../giao_dien/chuan_thiet_ke/bieu_tuong.dart';
 import '../tai_khoan/tab_tai_khoan.dart';
 import '../tong_quan/tab_tong_quan.dart';
+import '../ngan_sach/tab_ngan_sach.dart';
 import '../bao_cao/tab_bao_cao.dart';
 import '../giao_dich/man_hinh_them_giao_dich.dart';
 
@@ -35,12 +36,7 @@ class _ManHinhChinhTabState extends State<ManHinhChinhTab> {
     const TabTongQuan(),
 
     // Tab 2: Ngân sách & Mục tiêu
-    const Center(
-      child: Text(
-        'Màn hình Ngân sách & Mục tiêu',
-        style: TextStyle(color: MauSac.chuChinh, fontSize: 16),
-      ),
-    ),
+    const TabNganSach(),
 
     // Tab 3: Báo cáo & Phân tích
     const TabBaoCao(),

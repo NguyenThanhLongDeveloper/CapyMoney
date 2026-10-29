@@ -373,19 +373,27 @@ class _ManHinhChiTietGiaoDichState extends State<ManHinhChiTietGiaoDich> {
                             isThu ? 'Nguồn thu nhập' : 'Danh mục chi tiêu',
                             style: const TextStyle(color: MauSac.chuPhu, fontSize: 13),
                           ),
-                          Row(
-                            children: [
-                              const Icon(BieuTuong.chamTron, color: MauSac.chuDao, size: 8),
-                              const SizedBox(width: 6),
-                              Text(
-                                tenDM,
-                                style: const TextStyle(
-                                  color: MauSac.chuChinh,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
+                          const SizedBox(width: 12), // Thêm khoảng cách an toàn
+                          Expanded(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end, // Canh lề phải cho đẹp
+                              children: [
+                                const Icon(BieuTuong.chamTron, color: MauSac.chuDao, size: 8),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    tenDM,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: MauSac.chuChinh,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -400,32 +408,40 @@ class _ManHinhChiTietGiaoDichState extends State<ManHinhChiTietGiaoDich> {
                             isThu ? 'Tài khoản nhận tiền' : 'Ví thanh toán',
                             style: const TextStyle(color: MauSac.chuPhu, fontSize: 13),
                           ),
-                          Row(
-                            children: [
-                              Container(
-                                width: 20,
-                                height: 20,
-                                decoration: const BoxDecoration(
-                                  color: MauSac.phu,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Center(
-                                  child: Text(
-                                    'M',
-                                    style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                          const SizedBox(width: 12), // Thêm khoảng cách an toàn
+                          Expanded(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end, // Canh lề phải
+                              children: [
+                                Container(
+                                  width: 20,
+                                  height: 20,
+                                  decoration: const BoxDecoration(
+                                    color: MauSac.phu,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Center(
+                                    child: Text(
+                                      'M',
+                                      style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                tenViFormatted,
-                                style: const TextStyle(
-                                  color: MauSac.chuChinh,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    tenViFormatted,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: MauSac.chuChinh,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -486,20 +502,27 @@ class _ManHinhChiTietGiaoDichState extends State<ManHinhChiTietGiaoDich> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: const [
-                              Icon(BieuTuong.mayAnh, color: MauSac.chuDao, size: 18),
-                              SizedBox(width: 8),
-                              Text(
-                                'Chứng từ & Hóa đơn gốc',
-                                style: TextStyle(
-                                  color: MauSac.chuChinh,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
+                          Expanded(
+                            child: Row(
+                              children: const [
+                                Icon(BieuTuong.mayAnh, color: MauSac.chuDao, size: 18),
+                                SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(
+                                    'Chứng từ & Hóa đơn gốc',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: MauSac.chuChinh,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 8),
                           Text(
                             gd.anhHoaDon != null ? '1 tệp đính kèm' : 'Chưa có tệp',
                             style: const TextStyle(color: MauSac.chuPhu, fontSize: 11),
