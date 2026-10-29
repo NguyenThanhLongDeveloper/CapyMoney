@@ -164,6 +164,27 @@ class _ManHinhThemGiaoDichState extends State<ManHinhThemGiaoDich> {
     return numStr.replaceAllMapped(reg, (Match m) => '${m[1]}.');
   }
 
+  /// Chuỗi hiển thị thời gian chính xác của giao dịch
+  String get _ngayGiaoDichFormatted {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final target = DateTime(_ngayGiaoDich.year, _ngayGiaoDich.month, _ngayGiaoDich.day);
+
+    final hh = _ngayGiaoDich.hour.toString().padLeft(2, '0');
+    final mm = _ngayGiaoDich.minute.toString().padLeft(2, '0');
+
+    if (target == today) {
+      return 'Hôm nay, $hh:$mm';
+    } else if (target == yesterday) {
+      return 'Hôm qua, $hh:$mm';
+    } else {
+      final dd = _ngayGiaoDich.day.toString().padLeft(2, '0');
+      final mo = _ngayGiaoDich.month.toString().padLeft(2, '0');
+      return '$dd/$mo/${_ngayGiaoDich.year}, $hh:$mm';
+    }
+  }
+
   /// Chọn ngày giờ phát sinh giao dịch
   Future<void> _chonNgayGiaoDich() async {
     final DateTime? picked = await showDatePicker(
@@ -741,7 +762,7 @@ class _ManHinhThemGiaoDichState extends State<ManHinhThemGiaoDich> {
                                       children: [
                                         const Text('Thời gian', style: TextStyle(color: MauSac.chuPhu, fontSize: 10)),
                                         Text(
-                                          'Hôm nay, ${_ngayGiaoDich.hour.toString().padLeft(2, '0')}:${_ngayGiaoDich.minute.toString().padLeft(2, '0')}',
+                                          _ngayGiaoDichFormatted,
                                           style: const TextStyle(color: MauSac.chuChinh, fontSize: 12, fontWeight: FontWeight.bold),
                                         ),
                                       ],
