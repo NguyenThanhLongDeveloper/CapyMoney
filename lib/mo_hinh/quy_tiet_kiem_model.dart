@@ -1,3 +1,6 @@
+import 'package:flutter/material.dart';
+import '../giao_dien/chuan_thiet_ke/bieu_tuong.dart';
+
 /// Mô hình dữ liệu Quỹ Tiết Kiệm & Mục Tiêu Tài Chính (Savings Goal Model)
 /// 
 /// Quản lý thông tin mục tiêu tích lũy tài sản trong bảng `quy_tiet_kiem`.
@@ -57,6 +60,26 @@ class QuyTietKiemModel {
   double get soTienConLai =>
       soTienMucTieu > soTienHienCo ? soTienMucTieu - soTienHienCo : 0;
 
+  /// Getter OOP: Tự chuyển đổi thuộc tính `bieuTuong` hoặc `tenQuy` ra `IconData`
+  IconData get iconData {
+    final key = bieuTuong.toLowerCase().trim();
+    final name = tenQuy.toLowerCase().trim();
+
+    if (key.contains('khieu') || key.contains('shield') || key.contains('khien') || name.contains('khẩn cấp') || name.contains('dự phòng')) {
+      return BieuTuong.khienBaoMatDay;
+    }
+    if (key.contains('maybay') || key.contains('plane') || key.contains('flight') || name.contains('du lịch') || name.contains('bay')) {
+      return Icons.flight_takeoff_rounded;
+    }
+    if (key.contains('xemay') || key.contains('motorcycle') || name.contains('xe')) {
+      return BieuTuong.xeMay;
+    }
+    if (key.contains('nha') || key.contains('house') || name.contains('nhà') || name.contains('căn hộ')) {
+      return BieuTuong.hoaDon;
+    }
+    return BieuTuong.nganSach;
+  }
+
   /// Khởi tạo đối tượng QuyTietKiemModel từ bản ghi JSON của Supabase
   factory QuyTietKiemModel.fromJson(Map<String, dynamic> json) {
     return QuyTietKiemModel(
@@ -88,5 +111,22 @@ class QuyTietKiemModel {
       'ngay_ve_dich': ngayVeDich?.toIso8601String(),
       'nhac_nho_dinh_ky': nhacNhoDinhKy,
     };
+  }
+}
+
+/// Extension OOP hỗ trợ danh sách `List<QuyTietKiemModel>` tra cứu tên & icon nhanh
+extension QuyTietKiemListX on List<QuyTietKiemModel> {
+  /// Tìm đối tượng quỹ theo `quyId`
+  QuyTietKiemModel? timTheoId(String? quyId) {
+    if (quyId == null || quyId.isEmpty) return null;
+    final list = where((q) => q.id == quyId).toList();
+    return list.isNotEmpty ? list.first : null;
+  }
+
+  /// Lấy IconData của quỹ theo `quyId` (Tự động fallback)
+  IconData layIcon(String? quyId) {
+    final q = timTheoId(quyId);
+    if (q != null) return q.iconData;
+    return BieuTuong.nganSach;
   }
 }

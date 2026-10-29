@@ -319,38 +319,23 @@ class _TabNganSachState extends State<TabNganSach> {
 
   @override
   Widget build(BuildContext context) {
-    // Nếu CSDL rỗng -> Tạo danh sách mục tiêu mẫu hiển thị chuẩn mockup UI
-    final List<QuyTietKiemModel> listHienThi = _danhSachQuy.isNotEmpty
-        ? _danhSachQuy
-        : [
-            QuyTietKiemModel(
-              id: 'quy_1',
-              nguoiDungId: 'demo',
-              tenQuy: 'Quỹ khẩn cấp',
-              bieuTuong: 'khienBaoMat',
-              soTienHienCo: 65000000,
-              soTienMucTieu: 100000000,
-            ),
-            QuyTietKiemModel(
-              id: 'quy_2',
-              nguoiDungId: 'demo',
-              tenQuy: 'Du lịch Nhật Bản 2026',
-              bieuTuong: 'mayBay',
-              soTienHienCo: 18000000,
-              soTienMucTieu: 30000000,
-            ),
-          ];
-
-    // Tính toán số liệu tổng tiến độ
+    // Tính toán số liệu tổng tiến độ từ CSDL Supabase
     double tongHienCo = 0;
     double tongMucTieu = 0;
-    for (var q in listHienThi) {
+    double tongConThieu = 0;
+    double tongNopThangNay = 0;
+
+    for (var q in _danhSachQuy) {
       tongHienCo += q.soTienHienCo;
       tongMucTieu += q.soTienMucTieu;
+      tongConThieu += q.soTienConLai;
+      final int months = q.kyHanThang > 0 ? q.kyHanThang : 12;
+      if (q.soTienConLai > 0) {
+        tongNopThangNay += (q.soTienConLai / months);
+      }
     }
 
     final double phanTramTong = tongMucTieu > 0 ? (tongHienCo / tongMucTieu) * 100 : 0;
-    final double tongConThieu = tongMucTieu > tongHienCo ? tongMucTieu - tongHienCo : 0;
 
     return Scaffold(
       backgroundColor: MauSac.nenChinh,
@@ -452,7 +437,9 @@ class _TabNganSachState extends State<TabNganSach> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
-                                '${phanTramTong.toStringAsFixed(0)}% tổng mục tiêu',
+                                _danhSachQuy.isNotEmpty
+                                    ? '${phanTramTong.toStringAsFixed(0)}% tổng mục tiêu'
+                                    : 'Chưa có mục tiêu',
                                 style: const TextStyle(
                                   color: MauSac.chuDao,
                                   fontSize: 11,
@@ -496,11 +483,11 @@ class _TabNganSachState extends State<TabNganSach> {
 
                         const SizedBox(height: 8),
 
-                        // Subtitle tháng này & còn thiếu
+                        // Subtitle cần nộp tháng này & còn cần
                         Row(
                           children: [
                             Text(
-                              '↑ Tháng này: +7.200.000 đ',
+                              '↑ Cần nộp tháng này: ${_dinhDangTien(tongNopThangNay)}',
                               style: const TextStyle(color: MauSac.thuNhap, fontSize: 12, fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(width: 12),
@@ -518,7 +505,9 @@ class _TabNganSachState extends State<TabNganSach> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Tổng tiến độ (${listHienThi.length} mục tiêu)',
+                              _danhSachQuy.isNotEmpty
+                                  ? 'Tổng tiến độ (${_danhSachQuy.length} mục tiêu)'
+                                  : 'Chưa có mục tiêu',
                               style: const TextStyle(color: MauSac.chuPhu, fontSize: 11),
                             ),
                             Text(
@@ -565,7 +554,7 @@ class _TabNganSachState extends State<TabNganSach> {
                           border: Border.all(color: MauSac.duongVienNhat),
                         ),
                         child: Text(
-                          '${listHienThi.length} mục tiêu',
+                          '${_danhSachQuy.length} mục tiêu',
                           style: const TextStyle(color: MauSac.chuPhu, fontSize: 11),
                         ),
                       ),
@@ -574,14 +563,19 @@ class _TabNganSachState extends State<TabNganSach> {
 
                   const SizedBox(height: KhoangCach.lon),
 
-                  // LƯỚI / DANH SÁCH THẺ MỤC TIÊU TIẾT KIỆM
+                  // LƯỚI / DANH SÁCH THẺ MỤC TIÊU TIẾT KIỆM TỪ SUPABASE CSDL
                   if (_dangTai)
                     const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator(color: MauSac.chuDao)))
+                  else if (_danhSachQuy.isEmpty)
+                    _taoEmptyStateChuaCoQuy()
                   else
                     Column(
-                      children: listHienThi.map((quy) {
+                      children: _danhSachQuy.map((quy) {
                         final isKhanCap = quy.tenQuy.toLowerCase().contains('khẩn cấp') || quy.tenQuy.toLowerCase().contains('dự phòng');
                         final Color themeColor = isKhanCap ? MauSac.chuDao : const Color(0xFF38BDF8);
+                        final double nopThangQuy = quy.soTienConLai > 0
+                            ? (quy.soTienConLai / (quy.kyHanThang > 0 ? quy.kyHanThang : 12))
+                            : 0;
 
                         return Container(
                           margin: const EdgeInsets.only(bottom: 16),
@@ -605,7 +599,7 @@ class _TabNganSachState extends State<TabNganSach> {
                                       shape: BoxShape.circle,
                                     ),
                                     child: Icon(
-                                      isKhanCap ? BieuTuong.khienBaoMatDay : BieuTuong.oTo,
+                                      quy.iconData,
                                       color: themeColor,
                                       size: 20,
                                     ),
@@ -674,13 +668,13 @@ class _TabNganSachState extends State<TabNganSach> {
 
                               const SizedBox(height: 8),
 
-                              // Tốc độ tích lũy tháng
+                              // Tốc độ nộp cần thiết trong tháng
                               Row(
                                 children: [
                                   Icon(BieuTuong.dongBo, color: themeColor, size: 12),
                                   const SizedBox(width: 4),
                                   Text(
-                                    '+2.500.000 đ/tháng',
+                                    '+${_dinhDangTien(nopThangQuy)}/tháng',
                                     style: TextStyle(color: themeColor, fontSize: 11, fontWeight: FontWeight.bold),
                                   ),
                                 ],
@@ -764,6 +758,50 @@ class _TabNganSachState extends State<TabNganSach> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  /// Khung hiển thị khi chưa có quỹ tiết kiệm nào trong CSDL Supabase
+  Widget _taoEmptyStateChuaCoQuy() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+      decoration: BoxDecoration(
+        color: MauSac.nenThe,
+        borderRadius: BoGoc.borderVua,
+        border: Border.all(color: MauSac.duongVienNhat),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: const BoxDecoration(
+              color: MauSac.nenNoi,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              BieuTuong.nganSach,
+              color: MauSac.chuPhu,
+              size: 32,
+            ),
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'Chưa có khoản tiết kiệm nào',
+            style: TextStyle(
+              color: MauSac.chuChinh,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Bạn chưa có mục tiêu tích lũy nào.\nHãy nhấn nút (+ Tạo khoản tiết kiệm / Mục tiêu mới) bên dưới để bắt đầu!',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: MauSac.chuPhu, fontSize: 12, height: 1.4),
+          ),
+        ],
       ),
     );
   }
