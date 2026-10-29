@@ -9,6 +9,7 @@ import '../../mo_hinh/giao_dich_model.dart';
 import '../../mo_hinh/danh_muc_model.dart';
 import '../../mo_hinh/tai_khoan_ngan_hang_model.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
+import 'man_hinh_chinh_sua_giao_dich.dart';
 
 /// Màn Hình Chi Tiết Giao Dịch (Transaction Details Screen)
 /// 
@@ -634,12 +635,18 @@ class _ManHinhChiTietGiaoDichState extends State<ManHinhChiTietGiaoDich> {
                       child: SizedBox(
                         height: 50,
                         child: ElevatedButton.icon(
-                          onPressed: () {
-                            ThongBaoGiuaManHinh.hienThi(
-                              context,
-                              noiDung: 'Tính năng chỉnh sửa giao dịch đang được cập nhật!',
-                              loai: LoaiThongBao.canhBao,
+                          onPressed: () async {
+                            final navigator = Navigator.of(context);
+                            final res = await navigator.push(
+                              MaterialPageRoute(
+                                builder: (_) => ManHinhChinhSuaGiaoDich(
+                                  giaoDichCu: widget.giaoDich,
+                                ),
+                              ),
                             );
+                            if (res == true) {
+                              navigator.pop(true);
+                            }
                           },
                           icon: const Icon(BieuTuong.chinhSua, color: Colors.black, size: 18),
                           label: const FittedBox(

@@ -529,6 +529,76 @@ class DichVuSupabase {
     }
   }
 
+  /// Cập nhật giao dịch đã có và tự động điều chỉnh cân bằng lại số dư ví tương ứng
+  static Future<bool> capNhatGiaoDich({
+    required GiaoDichModel giaoDichCu,
+    required GiaoDichModel giaoDichMoi,
+  }) async {
+    try {
+      // 1. Hoàn trả tác động số dư của giao dịch cũ
+      if (giaoDichCu.taiKhoanId != null && giaoDichCu.taiKhoanId!.isNotEmpty) {
+        try {
+          final tkResCu = await client
+              .from(DuongDanApi.bangTaiKhoanNganHang)
+              .select('so_du')
+              .eq('id', giaoDichCu.taiKhoanId!)
+              .maybeSingle();
+
+          if (tkResCu != null) {
+            final double soDuCuHienTai = (tkResCu['so_du'] as num?)?.toDouble() ?? 0.0;
+            final double soDuCuKhaiHoan = giaoDichCu.loaiGiaoDich == 'thu_nhap'
+                ? soDuCuHienTai - giaoDichCu.soTien
+                : soDuCuHienTai + giaoDichCu.soTien;
+
+            await client
+                .from(DuongDanApi.bangTaiKhoanNganHang)
+                .update({'so_du': soDuCuKhaiHoan})
+                .eq('id', giaoDichCu.taiKhoanId!);
+          }
+        } catch (e) {
+          debugPrint('Lỗi hoàn trả số dư ví cũ: $e');
+        }
+      }
+
+      // 2. Cập nhật bản ghi trong bảng giao_dich
+      final dataMoi = giaoDichMoi.toJson();
+      await client
+          .from(DuongDanApi.bangGiaoDich)
+          .update(dataMoi)
+          .eq('id', giaoDichMoi.id);
+
+      // 3. Áp dụng tác động số dư của giao dịch mới
+      if (giaoDichMoi.taiKhoanId != null && giaoDichMoi.taiKhoanId!.isNotEmpty) {
+        try {
+          final tkResMoi = await client
+              .from(DuongDanApi.bangTaiKhoanNganHang)
+              .select('so_du')
+              .eq('id', giaoDichMoi.taiKhoanId!)
+              .maybeSingle();
+
+          if (tkResMoi != null) {
+            final double soDuMoiHienTai = (tkResMoi['so_du'] as num?)?.toDouble() ?? 0.0;
+            final double soDuMoiCapNhat = giaoDichMoi.loaiGiaoDich == 'thu_nhap'
+                ? soDuMoiHienTai + giaoDichMoi.soTien
+                : soDuMoiHienTai - giaoDichMoi.soTien;
+
+            await client
+                .from(DuongDanApi.bangTaiKhoanNganHang)
+                .update({'so_du': soDuMoiCapNhat})
+                .eq('id', giaoDichMoi.taiKhoanId!);
+          }
+        } catch (e) {
+          debugPrint('Lỗi áp dụng số dư ví mới: $e');
+        }
+      }
+
+      return true;
+    } catch (e) {
+      debugPrint('Lỗi cập nhật giao dịch: $e');
+      return false;
+    }
+  }
+
   /// Tải ảnh hóa đơn chứng từ lên Storage Bucket 'hoa_don'
   static Future<String?> taiHoaDonLenStorage(XFile xFile, String userId) async {
     if (userId.isEmpty) return null;
