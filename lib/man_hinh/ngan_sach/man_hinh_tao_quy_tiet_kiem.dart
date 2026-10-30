@@ -14,7 +14,7 @@ import '../../dich_vu/dich_vu_supabase.dart';
 /// 
 /// Thiết kế chuẩn Kinetic Neo-Fintech Dark Mode khớp 100% UI mockup:
 /// Chọn Biểu tượng mục tiêu từ CSDL, Tên mục tiêu, Số tiền mục tiêu, Số tiền gửi ban đầu (Trích từ ví nguồn),
-/// Kế hoạch dự kiến (3, 6, 12 tháng) và tính toán tốc độ nộp/tháng tự động.
+/// Tích hợp Bàn phím Numpad 3x4 linh hoạt bên dưới nhập liệu cho cả 2 trường tiền, Kế hoạch dự kiến.
 class ManHinhTaoQuyTietKiem extends StatefulWidget {
   const ManHinhTaoQuyTietKiem({super.key});
 
@@ -25,6 +25,9 @@ class ManHinhTaoQuyTietKiem extends StatefulWidget {
 class _ManHinhTaoQuyTietKiemState extends State<ManHinhTaoQuyTietKiem> {
   /// Controller nhập Tên mục tiêu tiết kiệm
   final _tenQuyController = TextEditingController(text: 'Mua xe máy mới');
+
+  /// Trường đang được tập trung nhập liệu từ Numpad: 'mucTieu' hoặc 'guiBanDau'
+  String _dangChonTruong = 'mucTieu';
 
   /// Chuỗi số tiền mục tiêu (Ví dụ '50000000')
   String _soTienMucTieuText = '50000000';
@@ -88,6 +91,37 @@ class _ManHinhTaoQuyTietKiemState extends State<ManHinhTaoQuyTietKiem> {
       debugPrint('Lỗi nạp dữ liệu tạo quỹ: $e');
       if (mounted) setState(() => _dangTaiDuLieu = false);
     }
+  }
+
+  /// Xử lý bấm phím bàn phím Numpad 3x4 (0..9, 000, ⌫)
+  void _nhapPhimNumpad(String key) {
+    setState(() {
+      String curStr = _dangChonTruong == 'mucTieu' ? _soTienMucTieuText : _soTienGuiBanDauText;
+
+      if (key == 'xoa') {
+        if (curStr.length > 1) {
+          curStr = curStr.substring(0, curStr.length - 1);
+        } else {
+          curStr = '0';
+        }
+      } else if (key == '000') {
+        if (curStr != '0' && curStr.length <= 11) {
+          curStr += '000';
+        }
+      } else {
+        if (curStr == '0') {
+          curStr = key;
+        } else if (curStr.length <= 12) {
+          curStr += key;
+        }
+      }
+
+      if (_dangChonTruong == 'mucTieu') {
+        _soTienMucTieuText = curStr;
+      } else {
+        _soTienGuiBanDauText = curStr;
+      }
+    });
   }
 
   /// Lấy số tiền double mục tiêu
@@ -243,6 +277,9 @@ class _ManHinhTaoQuyTietKiemState extends State<ManHinhTaoQuyTietKiem> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isFocusMucTieu = _dangChonTruong == 'mucTieu';
+    final bool isFocusGuiBanDau = _dangChonTruong == 'guiBanDau';
+
     return Scaffold(
       backgroundColor: MauSac.nenChinh,
       appBar: AppBar(
@@ -306,7 +343,6 @@ class _ManHinhTaoQuyTietKiemState extends State<ManHinhTaoQuyTietKiem> {
                                 onTap: () {
                                   setState(() {
                                     _danhMucChon = dm;
-                                    // Tự động đổi gợi ý tên mục tiêu nếu tên cũ bằng gợi ý khác
                                     _tenQuyController.text = 'Mua ${dm.tenDanhMuc.toLowerCase()} mới';
                                   });
                                 },
@@ -394,243 +430,259 @@ class _ManHinhTaoQuyTietKiemState extends State<ManHinhTaoQuyTietKiem> {
                 const SizedBox(height: KhoangCach.lon),
 
                 // SECTION 3: SỐ TIỀN MỤC TIÊU & CHIP THÊM TIỀN NHANH
-                Container(
-                  width: double.infinity,
-                  padding: KhoangCach.lToanBoLon,
-                  decoration: BoxDecoration(
-                    color: MauSac.nenThe,
-                    borderRadius: BoGoc.borderLon,
-                    border: Border.all(color: MauSac.duongVienNhat),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'SỐ TIỀN MỤC TIÊU',
-                            style: TextStyle(
-                              color: MauSac.chuPhu,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.8,
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () => setState(() => _soTienMucTieuText = '50000000'),
-                            child: Row(
-                              children: const [
-                                Icon(BieuTuong.lamMoi, color: MauSac.chuPhu, size: 12),
-                                SizedBox(width: 4),
-                                Text('Đặt lại', style: TextStyle(color: MauSac.chuPhu, fontSize: 11)),
+                GestureDetector(
+                  onTap: () => setState(() => _dangChonTruong = 'mucTieu'),
+                  child: Container(
+                    width: double.infinity,
+                    padding: KhoangCach.lToanBoLon,
+                    decoration: BoxDecoration(
+                      color: MauSac.nenThe,
+                      borderRadius: BoGoc.borderLon,
+                      border: Border.all(
+                        color: isFocusMucTieu ? MauSac.chuDao : MauSac.duongVienNhat,
+                        width: isFocusMucTieu ? 1.5 : 1,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                if (isFocusMucTieu) ...[
+                                  const Icon(BieuTuong.chamTron, color: MauSac.chuDao, size: 8),
+                                  const SizedBox(width: 6),
+                                ],
+                                const Text(
+                                  'SỐ TIỀN MỤC TIÊU',
+                                  style: TextStyle(
+                                    color: MauSac.chuPhu,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.8,
+                                  ),
+                                ),
                               ],
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Chuỗi hiển thị Số tiền mục tiêu cỡ lớn
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              keyboardType: TextInputType.number,
-                              style: const TextStyle(color: MauSac.chuChinh, fontSize: 32, fontWeight: FontWeight.bold),
-                              decoration: const InputDecoration(
-                                border: InputBorder.none,
-                                isDense: true,
-                                contentPadding: EdgeInsets.zero,
+                            GestureDetector(
+                              onTap: () => setState(() => _soTienMucTieuText = '50000000'),
+                              child: Row(
+                                children: const [
+                                  Icon(BieuTuong.lamMoi, color: MauSac.chuPhu, size: 12),
+                                  SizedBox(width: 4),
+                                  Text('Đặt lại', style: TextStyle(color: MauSac.chuPhu, fontSize: 11)),
+                                ],
                               ),
-                              controller: TextEditingController(text: _dinhDangTien(_soTienMucTieuParsed)),
-                              onChanged: (val) {
-                                final clean = val.replaceAll('.', '').replaceAll(' ', '');
-                                setState(() => _soTienMucTieuText = clean);
-                              },
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'VND',
-                            style: TextStyle(color: MauSac.chuPhu, fontSize: 14, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 14),
-
-                      // Hàng Chip Tiền Nhanh (+5 Tr, +10 Tr, +20 Tr, +50 Tr)
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            _taoChipTienMucTieu('+5 Tr', 5000000),
-                            _taoChipTienMucTieu('+10 Tr', 10000000),
-                            _taoChipTienMucTieu('+20 Tr', 20000000),
-                            _taoChipTienMucTieu('+50 Tr', 50000000),
                           ],
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 12),
+
+                        // Chuỗi hiển thị Số tiền mục tiêu cỡ lớn
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              _dinhDangTien(_soTienMucTieuParsed),
+                              style: TextStyle(
+                                color: isFocusMucTieu ? MauSac.chuDao : MauSac.chuChinh,
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'VND',
+                              style: TextStyle(color: MauSac.chuPhu, fontSize: 14, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        // Hàng Chip Tiền Nhanh (+5 Tr, +10 Tr, +20 Tr, +50 Tr)
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              _taoChipTienMucTieu('+5 Tr', 5000000),
+                              _taoChipTienMucTieu('+10 Tr', 10000000),
+                              _taoChipTienMucTieu('+20 Tr', 20000000),
+                              _taoChipTienMucTieu('+50 Tr', 50000000),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
                 const SizedBox(height: KhoangCach.lon),
 
                 // SECTION 4: SỐ TIỀN GỬI BAN ĐẦU & NGUỒN TRÍCH TIỀN
-                Container(
-                  width: double.infinity,
-                  padding: KhoangCach.lToanBoLon,
-                  decoration: BoxDecoration(
-                    color: MauSac.nenThe,
-                    borderRadius: BoGoc.borderLon,
-                    border: Border.all(color: MauSac.duongVienNhat),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'SỐ TIỀN GỬI BAN ĐẦU',
-                            style: TextStyle(
-                              color: MauSac.chuPhu,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.8,
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () => setState(() => _soTienGuiBanDauText = '0'),
-                            child: const Text(
-                              'Để sau (0đ)',
-                              style: TextStyle(color: MauSac.chuDao, fontSize: 11, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ],
+                GestureDetector(
+                  onTap: () => setState(() => _dangChonTruong = 'guiBanDau'),
+                  child: Container(
+                    width: double.infinity,
+                    padding: KhoangCach.lToanBoLon,
+                    decoration: BoxDecoration(
+                      color: MauSac.nenThe,
+                      borderRadius: BoGoc.borderLon,
+                      border: Border.all(
+                        color: isFocusGuiBanDau ? MauSac.chuDao : MauSac.duongVienNhat,
+                        width: isFocusGuiBanDau ? 1.5 : 1,
                       ),
-                      const SizedBox(height: 12),
-
-                      // Ô nhập Số tiền gửi ban đầu
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              keyboardType: TextInputType.number,
-                              style: const TextStyle(color: MauSac.chuChinh, fontSize: 24, fontWeight: FontWeight.bold),
-                              decoration: const InputDecoration(
-                                border: InputBorder.none,
-                                isDense: true,
-                                contentPadding: EdgeInsets.zero,
-                              ),
-                              controller: TextEditingController(text: _dinhDangTien(_soTienGuiBanDauParsed)),
-                              onChanged: (val) {
-                                final clean = val.replaceAll('.', '').replaceAll(' ', '');
-                                setState(() => _soTienGuiBanDauText = clean);
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text('đ', style: TextStyle(color: MauSac.chuDao, fontSize: 18, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      // Subtitle Tiến độ ban đầu %
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Khởi đầu ngay', style: TextStyle(color: MauSac.chuPhu, fontSize: 11)),
-                          Text(
-                            '${_phanTramBanDau.toStringAsFixed(0)}% mục tiêu',
-                            style: const TextStyle(color: MauSac.chuDao, fontSize: 11, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 6),
-
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: (_phanTramBanDau / 100).clamp(0.0, 1.0),
-                          minHeight: 6,
-                          backgroundColor: MauSac.nenNoi,
-                          color: MauSac.chuDao,
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Dòng chọn Ví Nguồn Trích Tiền
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Trích từ nguồn:', style: TextStyle(color: MauSac.chuPhu, fontSize: 12)),
-                          _dangTaiDuLieu
-                              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: MauSac.chuDao))
-                              : PopupMenuButton<TaiKhoanNganHangModel>(
-                                  color: MauSac.nenThe,
-                                  shape: const RoundedRectangleBorder(
-                                    borderRadius: BoGoc.borderVua,
-                                    side: BorderSide(color: MauSac.duongVienNhat),
-                                  ),
-                                  onSelected: (tk) => setState(() => _taiKhoanNguonChon = tk),
-                                  itemBuilder: (context) {
-                                    return _danhSachVi.map((tk) {
-                                      final soCuoi = tk.soTaiKhoan.length >= 4
-                                          ? tk.soTaiKhoan.substring(tk.soTaiKhoan.length - 4)
-                                          : tk.soTaiKhoan;
-                                      return PopupMenuItem(
-                                        value: tk,
-                                        child: Text('${tk.tenNganHang} •• $soCuoi (Dư: ${_dinhDangTien(tk.soDu)})',
-                                            style: const TextStyle(color: MauSac.chuChinh, fontSize: 12)),
-                                      );
-                                    }).toList();
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: MauSac.nenNoi,
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(color: MauSac.duongVienNhat),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(4),
-                                          decoration: const BoxDecoration(color: MauSac.thuNhap, shape: BoxShape.circle),
-                                          child: const Text('VCB', style: TextStyle(color: Colors.black, fontSize: 8, fontWeight: FontWeight.bold)),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          _taiKhoanNguonChon != null
-                                              ? '${_taiKhoanNguonChon!.tenNganHang} •• ${_taiKhoanNguonChon!.soTaiKhoan.length >= 4 ? _taiKhoanNguonChon!.soTaiKhoan.substring(_taiKhoanNguonChon!.soTaiKhoan.length - 4) : _taiKhoanNguonChon!.soTaiKhoan}'
-                                              : 'Chọn ví nguồn',
-                                          style: const TextStyle(color: MauSac.chuChinh, fontSize: 12, fontWeight: FontWeight.bold),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        const Icon(BieuTuong.muiTenXuong, color: MauSac.chuPhu, size: 16),
-                                      ],
-                                    ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                if (isFocusGuiBanDau) ...[
+                                  const Icon(BieuTuong.chamTron, color: MauSac.chuDao, size: 8),
+                                  const SizedBox(width: 6),
+                                ],
+                                const Text(
+                                  'SỐ TIỀN GỬI BAN ĐẦU',
+                                  style: TextStyle(
+                                    color: MauSac.chuPhu,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.8,
                                   ),
                                 ),
-                        ],
-                      ),
-                    ],
+                              ],
+                            ),
+                            GestureDetector(
+                              onTap: () => setState(() => _soTienGuiBanDauText = '0'),
+                              child: const Text(
+                                'Để sau (0đ)',
+                                style: TextStyle(color: MauSac.chuDao, fontSize: 11, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Ô nhập Số tiền gửi ban đầu
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              _dinhDangTien(_soTienGuiBanDauParsed),
+                              style: TextStyle(
+                                color: isFocusGuiBanDau ? MauSac.chuDao : MauSac.chuChinh,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('đ', style: TextStyle(color: MauSac.chuDao, fontSize: 18, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        // Subtitle Tiến độ ban đầu %
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Khởi đầu ngay', style: TextStyle(color: MauSac.chuPhu, fontSize: 11)),
+                            Text(
+                              '${_phanTramBanDau.toStringAsFixed(0)}% mục tiêu',
+                              style: const TextStyle(color: MauSac.chuDao, fontSize: 11, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 6),
+
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: (_phanTramBanDau / 100).clamp(0.0, 1.0),
+                            minHeight: 6,
+                            backgroundColor: MauSac.nenNoi,
+                            color: MauSac.chuDao,
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Dòng chọn Ví Nguồn Trích Tiền
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Trích từ nguồn:', style: TextStyle(color: MauSac.chuPhu, fontSize: 12)),
+                            _dangTaiDuLieu
+                                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: MauSac.chuDao))
+                                : PopupMenuButton<TaiKhoanNganHangModel>(
+                                    color: MauSac.nenThe,
+                                    shape: const RoundedRectangleBorder(
+                                      borderRadius: BoGoc.borderVua,
+                                      side: BorderSide(color: MauSac.duongVienNhat),
+                                    ),
+                                    onSelected: (tk) => setState(() => _taiKhoanNguonChon = tk),
+                                    itemBuilder: (context) {
+                                      return _danhSachVi.map((tk) {
+                                        final soCuoi = tk.soTaiKhoan.length >= 4
+                                            ? tk.soTaiKhoan.substring(tk.soTaiKhoan.length - 4)
+                                            : tk.soTaiKhoan;
+                                        return PopupMenuItem(
+                                          value: tk,
+                                          child: Text('${tk.tenNganHang} •• $soCuoi (Dư: ${_dinhDangTien(tk.soDu)})',
+                                              style: const TextStyle(color: MauSac.chuChinh, fontSize: 12)),
+                                        );
+                                      }).toList();
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: MauSac.nenNoi,
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(color: MauSac.duongVienNhat),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(4),
+                                            decoration: const BoxDecoration(color: MauSac.thuNhap, shape: BoxShape.circle),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            _taiKhoanNguonChon != null
+                                                ? '${_taiKhoanNguonChon!.tenNganHang} •• ${_taiKhoanNguonChon!.soTaiKhoan.length >= 4 ? _taiKhoanNguonChon!.soTaiKhoan.substring(_taiKhoanNguonChon!.soTaiKhoan.length - 4) : _taiKhoanNguonChon!.soTaiKhoan}'
+                                                : 'Chọn ví nguồn',
+                                            style: const TextStyle(color: MauSac.chuChinh, fontSize: 12, fontWeight: FontWeight.bold),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          const Icon(BieuTuong.muiTenXuong, color: MauSac.chuPhu, size: 16),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
                 const SizedBox(height: KhoangCach.lon),
 
-                // SECTION 5: KẾ HOẠCH DỰ KIẾN (CHIP 3, 6, 12 THÁNG & BẢNG DỰ TÍNH)
+                // SECTION 5: BÀN PHÍM SỐ TÍCH HỢP NUMPAD (3x4)
+                _taoBangNumpad(),
+
+                const SizedBox(height: KhoangCach.lon),
+
+                // SECTION 6: KẾ HOẠCH DỰ KIẾN (CHIP 3, 6, 12 THÁNG & BẢNG DỰ TÍNH)
                 Container(
                   width: double.infinity,
                   padding: KhoangCach.lToanBoLon,
@@ -724,7 +776,7 @@ class _ManHinhTaoQuyTietKiemState extends State<ManHinhTaoQuyTietKiem> {
 
                 const SizedBox(height: KhoangCach.sieuLon),
 
-                // SECTION 6: NÚT CTA "TẠO KHOẢN TIẾT KIỆM NGAY"
+                // SECTION 7: NÚT CTA "TẠO KHOẢN TIẾT KIỆM NGAY"
                 SizedBox(
                   width: double.infinity,
                   height: 52,
@@ -758,6 +810,79 @@ class _ManHinhTaoQuyTietKiemState extends State<ManHinhTaoQuyTietKiem> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  /// Custom Numpad 3x4
+  Widget _taoBangNumpad() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: MauSac.nenThe,
+        borderRadius: BoGoc.borderLon,
+        border: Border.all(color: MauSac.duongVienNhat),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              _taoNutNumpad('1'),
+              _taoNutNumpad('2'),
+              _taoNutNumpad('3'),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _taoNutNumpad('4'),
+              _taoNutNumpad('5'),
+              _taoNutNumpad('6'),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _taoNutNumpad('7'),
+              _taoNutNumpad('8'),
+              _taoNutNumpad('9'),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _taoNutNumpad('000'),
+              _taoNutNumpad('0'),
+              _taoNutNumpad('xoa', isIcon: true),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _taoNutNumpad(String val, {bool isIcon = false}) {
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        height: 48,
+        child: ElevatedButton(
+          onPressed: () => _nhapPhimNumpad(val),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: MauSac.nenNoi,
+            foregroundColor: MauSac.chuChinh,
+            elevation: 0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            padding: EdgeInsets.zero,
+          ),
+          child: isIcon
+              ? const Icon(BieuTuong.xoaLui, color: MauSac.chuPhu, size: 20)
+              : Text(
+                  val,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: MauSac.chuChinh),
+                ),
         ),
       ),
     );
@@ -806,9 +931,12 @@ class _ManHinhTaoQuyTietKiemState extends State<ManHinhTaoQuyTietKiem> {
         side: const BorderSide(color: MauSac.duongVienNhat),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         onPressed: () {
-          final cur = _soTienMucTieuParsed;
-          final total = cur + soTien;
-          setState(() => _soTienMucTieuText = total.toInt().toString());
+          setState(() {
+            _dangChonTruong = 'mucTieu';
+            final cur = _soTienMucTieuParsed;
+            final total = cur + soTien;
+            _soTienMucTieuText = total.toInt().toString();
+          });
         },
       ),
     );
