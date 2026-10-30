@@ -108,6 +108,9 @@ class BieuTuong {
   /// Sức khỏe, thuốc men
   static const IconData sucKhoe = Icons.medical_services_rounded;
 
+  /// Học tập, giáo dục
+  static const IconData hocTap = Icons.school_rounded;
+
   /// thưởng, thu nhập phụ
   static const IconData thuong = Icons.category_rounded;
 

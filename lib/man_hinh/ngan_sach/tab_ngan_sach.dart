@@ -8,6 +8,7 @@ import '../../giao_dien/chuan_thiet_ke/dap_ung.dart';
 import '../../giao_dien/thong_bao/thong_bao_giua_man_hinh.dart';
 import '../../mo_hinh/quy_tiet_kiem_model.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
+import 'man_hinh_tao_quy_tiet_kiem.dart';
 
 /// Tab 2: Màn Hình Ngân Sách & Mục Tiêu Tiết Kiệm (Savings & Goals Screen)
 /// 
@@ -214,98 +215,6 @@ class _TabNganSachState extends State<TabNganSach> {
         _hienThongBao('Đã rút ${_dinhDangTien(soTienRut)} khỏi ${quy.tenQuy}!', loai: LoaiThongBao.thanhCong);
         _loadDuLieu();
       }
-    }
-  }
-
-  /// Mở Hộp thoại Tạo mục tiêu mới
-  Future<void> _moHopThoaiTaoMucTieuMoi() async {
-    final tenCtrl = TextEditingController();
-    final mucTieuCtrl = TextEditingController();
-
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (dialogCtx) {
-        return AlertDialog(
-          backgroundColor: MauSac.nenThe,
-          shape: RoundedRectangleBorder(borderRadius: BoGoc.borderVua),
-          title: Row(
-            children: const [
-              Icon(BieuTuong.themGiaoDich, color: MauSac.chuDao, size: 22),
-              SizedBox(width: 8),
-              Text('Tạo mục tiêu mới', style: TextStyle(color: MauSac.chuChinh, fontSize: 16, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: tenCtrl,
-                style: const TextStyle(color: MauSac.chuChinh, fontSize: 14),
-                decoration: InputDecoration(
-                  labelText: 'Tên mục tiêu / quỹ (VD: Mua xe, Đổi iPhone)',
-                  labelStyle: const TextStyle(color: MauSac.chuPhu),
-                  filled: true,
-                  fillColor: MauSac.nenNoi,
-                  border: OutlineInputBorder(borderRadius: BoGoc.borderVua, borderSide: const BorderSide(color: MauSac.duongVienNhat)),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: mucTieuCtrl,
-                keyboardType: TextInputType.number,
-                style: const TextStyle(color: MauSac.chuChinh, fontSize: 14),
-                decoration: InputDecoration(
-                  labelText: 'Số tiền mục tiêu (VND)',
-                  labelStyle: const TextStyle(color: MauSac.chuPhu),
-                  filled: true,
-                  fillColor: MauSac.nenNoi,
-                  border: OutlineInputBorder(borderRadius: BoGoc.borderVua, borderSide: const BorderSide(color: MauSac.duongVienNhat)),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogCtx, false),
-              child: const Text('Hủy', style: TextStyle(color: MauSac.chuPhu)),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(dialogCtx, true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: MauSac.chuDao,
-                foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(borderRadius: BoGoc.borderNho),
-              ),
-              child: const Text('Tạo mục tiêu', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (confirm == true) {
-      final user = DichVuSupabase.nguoiDungHienTai;
-      final tenQuy = tenCtrl.text.trim();
-      final mucTieu = double.tryParse(mucTieuCtrl.text.trim()) ?? 0.0;
-
-      if (user == null || tenQuy.isEmpty || mucTieu <= 0) {
-        _hienThongBao('Vui lòng nhập đầy đủ tên và số tiền mục tiêu hợp lệ!');
-        return;
-      }
-
-      final quyMoi = QuyTietKiemModel(
-        id: '',
-        nguoiDungId: user.id,
-        tenQuy: tenQuy,
-        soTienMucTieu: mucTieu,
-        soTienHienCo: 0.0,
-        bieuTuong: 'khienBaoMat',
-      );
-
-      await DichVuSupabase.taoQuyMoi(quyMoi);
-      _hienThongBao('Tạo mục tiêu "$tenQuy" thành công!', loai: LoaiThongBao.thanhCong);
-      _loadDuLieu();
     }
   }
 
@@ -735,7 +644,17 @@ class _TabNganSachState extends State<TabNganSach> {
                     width: double.infinity,
                     height: 52,
                     child: ElevatedButton.icon(
-                      onPressed: _moHopThoaiTaoMucTieuMoi,
+                      onPressed: () async {
+                        final res = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ManHinhTaoQuyTietKiem(),
+                          ),
+                        );
+                        if (res == true) {
+                          _loadDuLieu();
+                        }
+                      },
                       icon: const Icon(BieuTuong.themGiaoDich, color: Colors.black, size: 20),
                       label: const FittedBox(
                         child: Text(
