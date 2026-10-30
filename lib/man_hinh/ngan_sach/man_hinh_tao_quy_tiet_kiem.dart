@@ -176,14 +176,14 @@ class _ManHinhTaoQuyTietKiemState extends State<ManHinhTaoQuyTietKiem> {
     try {
       final ngayVeDich = DateTime.now().add(Duration(days: _kyHanThangChon * 30));
 
-      // 1. Tạo bản ghi khoản tiết kiệm mới trong Supabase
+      // 1. Tạo bản ghi khoản tiết kiệm mới trong Supabase (Khởi tạo ban đầu = 0đ)
       final quyMoi = QuyTietKiemModel(
         id: '',
         nguoiDungId: user.id,
         tenQuy: tenQuy,
         danhMucNganSachId: _danhMucChon?.id,
         soTienMucTieu: mucTieu,
-        soTienHienCo: guiBanDau,
+        soTienHienCo: 0.0,
         nguonTrichId: _taiKhoanNguonChon?.id,
         kyHanThang: _kyHanThangChon,
         ngayVeDich: ngayVeDich,
