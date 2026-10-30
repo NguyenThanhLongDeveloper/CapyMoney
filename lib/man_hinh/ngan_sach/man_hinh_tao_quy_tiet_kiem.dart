@@ -184,7 +184,6 @@ class _ManHinhTaoQuyTietKiemState extends State<ManHinhTaoQuyTietKiem> {
         danhMucNganSachId: _danhMucChon?.id,
         soTienMucTieu: mucTieu,
         soTienHienCo: 0.0,
-        nguonTrichId: _taiKhoanNguonChon?.id,
         kyHanThang: _kyHanThangChon,
         ngayVeDich: ngayVeDich,
         nhacNhoDinhKy: true,

@@ -20,9 +20,6 @@ class QuyTietKiemModel {
   /// Số tiền hiện có đã nạp
   final double soTienHienCo;
 
-  /// Nguồn tiền tự động trích hàng tháng (ID tài khoản/ví)
-  final String? nguonTrichId;
-
   /// Kỳ hạn tích lũy theo tháng
   final int kyHanThang;
 
@@ -42,7 +39,6 @@ class QuyTietKiemModel {
     this.danhMucNganSachId,
     required this.soTienMucTieu,
     this.soTienHienCo = 0.0,
-    this.nguonTrichId,
     this.kyHanThang = 12,
     this.ngayVeDich,
     this.nhacNhoDinhKy = true,
@@ -73,7 +69,6 @@ class QuyTietKiemModel {
       danhMucNganSachId: json['danh_muc_ngan_sach_id'] as String?,
       soTienMucTieu: (json['so_tien_muc_tieu'] as num).toDouble(),
       soTienHienCo: (json['so_tien_hien_co'] as num?)?.toDouble() ?? 0.0,
-      nguonTrichId: json['nguon_trich_id'] as String?,
       kyHanThang: json['ky_han_thang'] as int? ?? 12,
       ngayVeDich: json['ngay_ve_dich'] != null ? DateTime.tryParse(json['ngay_ve_dich']) : null,
       nhacNhoDinhKy: json['nhac_nho_dinh_ky'] as bool? ?? true,
@@ -89,7 +84,6 @@ class QuyTietKiemModel {
       'danh_muc_ngan_sach_id': (danhMucNganSachId != null && danhMucNganSachId!.trim().isNotEmpty) ? danhMucNganSachId : null,
       'so_tien_muc_tieu': soTienMucTieu,
       'so_tien_hien_co': soTienHienCo,
-      'nguon_trich_id': (nguonTrichId != null && nguonTrichId!.trim().isNotEmpty) ? nguonTrichId : null,
       'ky_han_thang': kyHanThang,
       'ngay_ve_dich': ngayVeDich?.toIso8601String(),
       'nhac_nho_dinh_ky': nhacNhoDinhKy,
@@ -103,3 +97,12 @@ class QuyTietKiemModel {
   }
 }
 
+/// Extension OOP hỗ trợ danh sách `List<QuyTietKiemModel>` tra cứu tên nhanh
+extension QuyTietKiemListX on List<QuyTietKiemModel> {
+  /// Tìm đối tượng quỹ theo `quyId`
+  QuyTietKiemModel? timTheoId(String? quyId) {
+    if (quyId == null || quyId.isEmpty) return null;
+    final list = where((q) => q.id == quyId).toList();
+    return list.isNotEmpty ? list.first : null;
+  }
+}

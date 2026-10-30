@@ -722,4 +722,90 @@ class DichVuSupabase {
 
     return true;
   }
+
+  /// Xóa quỹ tiết kiệm và tự động hoàn trả toàn bộ số dư đã tích lũy về các ví ngân hàng tương ứng
+  static Future<bool> xoaQuyTietKiem(QuyTietKiemModel quy) async {
+    try {
+      final nguoiDung = client.auth.currentUser;
+      if (nguoiDung == null) return false;
+
+      // 1. Đọc toàn bộ nhật ký giao dịch của quỹ này trong public.lich_su_quy
+      final listLichSuRes = await client
+          .from(DuongDanApi.bangLichSuQuy)
+          .select()
+          .eq('quy_id', quy.id);
+
+      final Map<String, double> ranhGioiHoanTienVi = {};
+
+      if (listLichSuRes is List && listLichSuRes.isNotEmpty) {
+        for (var item in listLichSuRes) {
+          final tkId = item['tai_khoan_id'] as String?;
+          final loai = item['loai_thao_tac'] as String?;
+          final amount = (item['so_tien'] as num?)?.toDouble() ?? 0.0;
+
+          if (tkId != null && tkId.isNotEmpty) {
+            if (loai == 'nap_tien') {
+              ranhGioiHoanTienVi[tkId] = (ranhGioiHoanTienVi[tkId] ?? 0.0) + amount;
+            } else if (loai == 'rut_tien') {
+              ranhGioiHoanTienVi[tkId] = (ranhGioiHoanTienVi[tkId] ?? 0.0) - amount;
+            }
+          }
+        }
+      }
+
+      // 2. Hoàn tiền lại cho từng ví ngân hàng
+      if (ranhGioiHoanTienVi.isNotEmpty) {
+        for (var entry in ranhGioiHoanTienVi.entries) {
+          final tkId = entry.key;
+          final double soTienHoan = entry.value;
+
+          if (soTienHoan > 0) {
+            final tkRes = await client
+                .from(DuongDanApi.bangTaiKhoanNganHang)
+                .select('so_du')
+                .eq('id', tkId)
+                .maybeSingle();
+
+            if (tkRes != null) {
+              final double soDuHienCo = (tkRes['so_du'] as num?)?.toDouble() ?? 0.0;
+              final double soDuSauHoan = soDuHienCo + soTienHoan;
+
+              await client
+                  .from(DuongDanApi.bangTaiKhoanNganHang)
+                  .update({'so_du': soDuSauHoan})
+                  .eq('id', tkId);
+            }
+          }
+        }
+      } else if (quy.soTienHienCo > 0) {
+        // Nếu không tìm thấy lịch sử chi tiết nhưng quỹ vẫn có số dư -> Hoàn về ví chính
+        final listTK = await layDanhSachTaiKhoan();
+        if (listTK.isNotEmpty) {
+          final viChinh = listTK.firstWhere((v) => v.laNhanChinh, orElse: () => listTK.first);
+          final double soDuMoi = viChinh.soDu + quy.soTienHienCo;
+          await client
+              .from(DuongDanApi.bangTaiKhoanNganHang)
+              .update({'so_du': soDuMoi})
+              .eq('id', viChinh.id);
+        }
+      }
+
+      // 3. Xóa các bản ghi lịch sử quỹ trong public.lich_su_quy
+      await client
+          .from(DuongDanApi.bangLichSuQuy)
+          .delete()
+          .eq('quy_id', quy.id);
+
+      // 4. Xóa bản ghi quỹ trong public.quy_tiet_kiem
+      await client
+          .from(DuongDanApi.bangQuyTietKiem)
+          .delete()
+          .eq('id', quy.id);
+
+      return true;
+    } catch (e) {
+      debugPrint('Lỗi xóa quỹ tiết kiệm: $e');
+      return false;
+    }
+  }
 }

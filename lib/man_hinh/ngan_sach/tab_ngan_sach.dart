@@ -232,6 +232,66 @@ class _TabNganSachState extends State<TabNganSach> {
     );
   }
 
+  /// Hộp thoại xác nhận và thực thi xóa Quỹ tiết kiệm kèm hoàn tiền tự động về ví
+  Future<void> _xacNhanXoaQuy(QuyTietKiemModel quy) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) {
+        return AlertDialog(
+          backgroundColor: MauSac.nenThe,
+          shape: RoundedRectangleBorder(borderRadius: BoGoc.borderVua),
+          title: Row(
+            children: const [
+              Icon(BieuTuong.xoaVien, color: MauSac.chiTieu, size: 22),
+              SizedBox(width: 8),
+              Text('Xóa khoản tiết kiệm', style: TextStyle(color: MauSac.chuChinh, fontSize: 16, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Bạn có chắc chắn muốn xóa mục tiêu "${quy.tenQuy}"?',
+                style: const TextStyle(color: MauSac.chuChinh, fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Số tiền hiện có (${_dinhDangTien(quy.soTienHienCo)}) sẽ được tự động hoàn trả về các ví ngân hàng đã trích tiền tích lũy!',
+                style: const TextStyle(color: MauSac.chuPhu, fontSize: 12, height: 1.4),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx, false),
+              child: const Text('Hủy', style: TextStyle(color: MauSac.chuPhu)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(dialogCtx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: MauSac.chiTieu,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BoGoc.borderNho),
+              ),
+              child: const Text('Xác nhận xóa & Hoàn tiền', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true) {
+      final success = await DichVuSupabase.xoaQuyTietKiem(quy);
+      if (success) {
+        _hienThongBao('Đã xóa "${quy.tenQuy}" và hoàn trả tiền về ví thành công!', loai: LoaiThongBao.thanhCong);
+        _loadDuLieu();
+      } else {
+        _hienThongBao('Không thể xóa khoản tiết kiệm. Vui lòng thử lại!');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Tính toán số liệu tổng tiến độ từ CSDL Supabase
@@ -498,7 +558,7 @@ class _TabNganSachState extends State<TabNganSach> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Hàng tiêu đề mục tiêu + %
+                              // Hàng tiêu đề mục tiêu + % + Icon Xóa
                               Row(
                                 children: [
                                   Container(
@@ -532,6 +592,14 @@ class _TabNganSachState extends State<TabNganSach> {
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
                                     ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  IconButton(
+                                    icon: const Icon(BieuTuong.xoaTron, color: MauSac.chiTieu, size: 20),
+                                    onPressed: () => _xacNhanXoaQuy(quy),
+                                    tooltip: 'Xóa khoản tiết kiệm',
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
                                   ),
                                 ],
                               ),
