@@ -47,9 +47,6 @@ class BieuTuong {
   /// Nạp tiền vào quỹ
   static const IconData napTien = Icons.download_rounded;
 
-  /// Xe máy / Mục tiêu mua sắm
-  static const IconData xeMay = Icons.two_wheeler_rounded;
-
   /// Giỏ hàng siêu thị
   static const IconData gioHang = Icons.shopping_cart_rounded;
 
@@ -84,7 +81,23 @@ class BieuTuong {
   static const IconData xuHuongTang = Icons.trending_up_rounded;
 
   // ==========================================
-  // BIỂU TƯỢNG DANH MỤC THU CHI (CATEGORIES)
+  // BIỂU TƯỢNG DANH MỤC NGÂN SÁCH
+  // ==========================================
+
+  /// Xe máy
+  static const IconData xeMay = Icons.two_wheeler_rounded;
+
+  ///Máy bay
+  static const IconData mayBay = Icons.flight_takeoff_rounded;
+
+  ///Laptop
+  static const IconData lapTop = Icons.laptop_chromebook_rounded;
+
+  /// Học tập, giáo dục
+  static const IconData hocTap = Icons.school_rounded;
+
+  // ==========================================
+  // BIỂU TƯỢNG DANH MỤC THU CHI
   // ==========================================
 
   /// Ăn uống, nhà hàng
@@ -107,9 +120,6 @@ class BieuTuong {
 
   /// Sức khỏe, thuốc men
   static const IconData sucKhoe = Icons.medical_services_rounded;
-
-  /// Học tập, giáo dục
-  static const IconData hocTap = Icons.school_rounded;
 
   /// thưởng, thu nhập phụ
   static const IconData thuong = Icons.category_rounded;

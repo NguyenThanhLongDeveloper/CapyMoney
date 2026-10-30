@@ -7,6 +7,7 @@ import '../../giao_dien/chuan_thiet_ke/hinh_anh.dart';
 import '../../giao_dien/chuan_thiet_ke/dap_ung.dart';
 import '../../giao_dien/thong_bao/thong_bao_giua_man_hinh.dart';
 import '../../mo_hinh/quy_tiet_kiem_model.dart';
+import '../../mo_hinh/danh_muc_ngan_sach_model.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
 import 'man_hinh_tao_quy_tiet_kiem.dart';
 
@@ -30,6 +31,9 @@ class _TabNganSachState extends State<TabNganSach> {
   /// Trạng thái đang tải CSDL
   bool _dangTai = true;
 
+  /// Danh sách danh mục ngân sách từ Supabase CSDL
+  List<DanhMucNganSachModel> _danhSachDanhMucNganSach = [];
+
   /// Danh sách các quỹ tiết kiệm mục tiêu từ Supabase
   List<QuyTietKiemModel> _danhSachQuy = [];
 
@@ -39,13 +43,15 @@ class _TabNganSachState extends State<TabNganSach> {
     _loadDuLieu();
   }
 
-  /// Nạp danh sách quỹ tiết kiệm từ CSDL Supabase
+  /// Nạp danh sách danh mục ngân sách & quỹ tiết kiệm từ CSDL Supabase
   Future<void> _loadDuLieu() async {
     setState(() => _dangTai = true);
     try {
+      final listDM = await DichVuSupabase.layDanhSachDanhMucNganSach();
       final listQuy = await DichVuSupabase.layDanhSachQuy();
       if (mounted) {
         setState(() {
+          _danhSachDanhMucNganSach = listDM;
           _danhSachQuy = listQuy;
           _dangTai = false;
         });
@@ -238,10 +244,7 @@ class _TabNganSachState extends State<TabNganSach> {
       tongHienCo += q.soTienHienCo;
       tongMucTieu += q.soTienMucTieu;
       tongConThieu += q.soTienConLai;
-      final int months = q.kyHanThang > 0 ? q.kyHanThang : 12;
-      if (q.soTienConLai > 0) {
-        tongNopThangNay += (q.soTienConLai / months);
-      }
+      tongNopThangNay += q.soTienCanNopHangThang;
     }
 
     final double phanTramTong = tongMucTieu > 0 ? (tongHienCo / tongMucTieu) * 100 : 0;
@@ -480,11 +483,9 @@ class _TabNganSachState extends State<TabNganSach> {
                   else
                     Column(
                       children: _danhSachQuy.map((quy) {
-                        final isKhanCap = quy.tenQuy.toLowerCase().contains('khẩn cấp') || quy.tenQuy.toLowerCase().contains('dự phòng');
-                        final Color themeColor = isKhanCap ? MauSac.chuDao : const Color(0xFF38BDF8);
-                        final double nopThangQuy = quy.soTienConLai > 0
-                            ? (quy.soTienConLai / (quy.kyHanThang > 0 ? quy.kyHanThang : 12))
-                            : 0;
+                        final IconData iconData = _danhSachDanhMucNganSach.layIcon(quy.danhMucNganSachId);
+                        final Color themeColor = _danhSachDanhMucNganSach.layMauSac(quy.danhMucNganSachId);
+                        final double nopThangQuy = quy.soTienCanNopHangThang;
 
                         return Container(
                           margin: const EdgeInsets.only(bottom: 16),
@@ -508,7 +509,7 @@ class _TabNganSachState extends State<TabNganSach> {
                                       shape: BoxShape.circle,
                                     ),
                                     child: Icon(
-                                      quy.iconData,
+                                      iconData,
                                       color: themeColor,
                                       size: 20,
                                     ),

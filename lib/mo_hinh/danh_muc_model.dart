@@ -62,7 +62,7 @@ class DanhMucModel {
     final keyLower = key.toLowerCase();
     final name = tenDanhMuc.toLowerCase().trim();
 
-    // 1. Ánh xạ trực tiếp chuẩn 100% tên cột `bieu_tuong` trong CSDL Supabase
+    // 1. Ánh xạ trực tiếp trong CSDL Supabase
     if (key == 'giaTri' || keyLower == 'giatri' || keyLower.contains('luong')) {
       return BieuTuong.giaTri; // ⭐ Stars / Thưởng KPI & Lương
     }

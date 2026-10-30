@@ -6,13 +6,14 @@ import '../../giao_dien/chuan_thiet_ke/bieu_tuong.dart';
 import '../../giao_dien/chuan_thiet_ke/dap_ung.dart';
 import '../../giao_dien/thong_bao/thong_bao_giua_man_hinh.dart';
 import '../../mo_hinh/quy_tiet_kiem_model.dart';
+import '../../mo_hinh/danh_muc_ngan_sach_model.dart';
 import '../../mo_hinh/tai_khoan_ngan_hang_model.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
 
 /// Màn Hình Tạo Khoản Tiết Kiệm & Mục Tiêu Mới (Create Savings Goal Screen)
 /// 
 /// Thiết kế chuẩn Kinetic Neo-Fintech Dark Mode khớp 100% UI mockup:
-/// Chọn Biểu tượng mục tiêu, Tên mục tiêu, Số tiền mục tiêu, Số tiền gửi ban đầu (Trích từ ví nguồn),
+/// Chọn Biểu tượng mục tiêu từ CSDL, Tên mục tiêu, Số tiền mục tiêu, Số tiền gửi ban đầu (Trích từ ví nguồn),
 /// Kế hoạch dự kiến (3, 6, 12 tháng) và tính toán tốc độ nộp/tháng tự động.
 class ManHinhTaoQuyTietKiem extends StatefulWidget {
   const ManHinhTaoQuyTietKiem({super.key});
@@ -22,9 +23,6 @@ class ManHinhTaoQuyTietKiem extends StatefulWidget {
 }
 
 class _ManHinhTaoQuyTietKiemState extends State<ManHinhTaoQuyTietKiem> {
-  /// Key Biểu tượng đang chọn: 'xeMay', 'mayBay', 'hoaDon', 'lapTop', 'khienBaoMat', 'hocTap'
-  String _bieuTuongChon = 'xeMay';
-
   /// Controller nhập Tên mục tiêu tiết kiệm
   final _tenQuyController = TextEditingController(text: 'Mua xe máy mới');
 
@@ -37,14 +35,20 @@ class _ManHinhTaoQuyTietKiemState extends State<ManHinhTaoQuyTietKiem> {
   /// Kỳ hạn tích lũy theo tháng: 3, 6, 12, hoặc 24
   int _kyHanThangChon = 12;
 
+  /// Danh mục ngân sách chọn từ CSDL
+  DanhMucNganSachModel? _danhMucChon;
+
   /// Ví nguồn trích tiền ban đầu
   TaiKhoanNganHangModel? _taiKhoanNguonChon;
 
-  /// Trạng thái đang nạp danh sách ví từ CSDL
-  bool _dangTaiVi = true;
+  /// Trạng thái đang nạp CSDL
+  bool _dangTaiDuLieu = true;
 
   /// Trạng thái đang lưu dữ liệu lên Supabase
   bool _dangXuLy = false;
+
+  /// Danh sách danh mục ngân sách từ CSDL
+  List<DanhMucNganSachModel> _danhSachDanhMucNganSach = [];
 
   /// Danh sách ví từ CSDL
   List<TaiKhoanNganHangModel> _danhSachVi = [];
@@ -52,29 +56,37 @@ class _ManHinhTaoQuyTietKiemState extends State<ManHinhTaoQuyTietKiem> {
   @override
   void initState() {
     super.initState();
-    _loadDanhSachVi();
+    _loadDuLieu();
   }
 
-  /// Nạp danh sách Ví ngân hàng từ CSDL Supabase
-  Future<void> _loadDanhSachVi() async {
-    setState(() => _dangTaiVi = true);
+  /// Nạp danh sách Danh mục Ngân sách & Ví ngân hàng từ CSDL Supabase
+  Future<void> _loadDuLieu() async {
+    setState(() => _dangTaiDuLieu = true);
     try {
+      final listDM = await DichVuSupabase.layDanhSachDanhMucNganSach();
       final listVi = await DichVuSupabase.layDanhSachTaiKhoan();
+
       if (mounted) {
         setState(() {
+          _danhSachDanhMucNganSach = listDM;
           _danhSachVi = listVi;
+
+          if (listDM.isNotEmpty) {
+            _danhMucChon = listDM.first;
+          }
+
           if (listVi.isNotEmpty) {
             _taiKhoanNguonChon = listVi.firstWhere(
               (tk) => tk.laNhanChinh,
               orElse: () => listVi.first,
             );
           }
-          _dangTaiVi = false;
+          _dangTaiDuLieu = false;
         });
       }
     } catch (e) {
-      debugPrint('Lỗi nạp danh sách ví: $e');
-      if (mounted) setState(() => _dangTaiVi = false);
+      debugPrint('Lỗi nạp dữ liệu tạo quỹ: $e');
+      if (mounted) setState(() => _dangTaiDuLieu = false);
     }
   }
 
@@ -169,7 +181,7 @@ class _ManHinhTaoQuyTietKiemState extends State<ManHinhTaoQuyTietKiem> {
         id: '',
         nguoiDungId: user.id,
         tenQuy: tenQuy,
-        bieuTuong: _bieuTuongChon,
+        danhMucNganSachId: _danhMucChon?.id,
         soTienMucTieu: mucTieu,
         soTienHienCo: guiBanDau,
         nguonTrichId: _taiKhoanNguonChon?.id,
@@ -260,7 +272,7 @@ class _ManHinhTaoQuyTietKiemState extends State<ManHinhTaoQuyTietKiem> {
               children: [
                 const SizedBox(height: KhoangCach.nho),
 
-                // SECTION 1: CARD BIỂU TƯỢNG MỤC TIÊU
+                // SECTION 1: CARD BIỂU TƯỢNG MỤC TIÊU (NẠP ĐỘNG TỪ CSDL SUPABASE)
                 Container(
                   width: double.infinity,
                   padding: KhoangCach.lToanBoLon,
@@ -282,51 +294,57 @@ class _ManHinhTaoQuyTietKiemState extends State<ManHinhTaoQuyTietKiem> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: QuyTietKiemModel.danhSachBieuTuongGoiY.map((item) {
-                            final key = item.key;
-                            final label = item.label;
-                            final icon = item.icon;
-                            final bool isSelected = _bieuTuongChon == key;
+                      if (_dangTaiDuLieu)
+                        const Center(child: Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator(color: MauSac.chuDao)))
+                      else
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: _danhSachDanhMucNganSach.map((dm) {
+                              final bool isSelected = _danhMucChon?.id == dm.id;
 
-                            return GestureDetector(
-                              onTap: () => setState(() => _bieuTuongChon = key),
-                              child: Container(
-                                margin: const EdgeInsets.only(right: 12),
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: isSelected ? MauSac.chuDao.withValues(alpha: 0.2) : MauSac.nenNoi,
-                                  borderRadius: BoGoc.borderVua,
-                                  border: Border.all(
-                                    color: isSelected ? MauSac.chuDao : MauSac.duongVienNhat,
-                                    width: isSelected ? 1.5 : 1,
+                              return GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _danhMucChon = dm;
+                                    // Tự động đổi gợi ý tên mục tiêu nếu tên cũ bằng gợi ý khác
+                                    _tenQuyController.text = 'Mua ${dm.tenDanhMuc.toLowerCase()} mới';
+                                  });
+                                },
+                                child: Container(
+                                  margin: const EdgeInsets.only(right: 12),
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? dm.mauSacColor.withValues(alpha: 0.2) : MauSac.nenNoi,
+                                    borderRadius: BoGoc.borderVua,
+                                    border: Border.all(
+                                      color: isSelected ? dm.mauSacColor : MauSac.duongVienNhat,
+                                      width: isSelected ? 1.5 : 1,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Icon(
+                                        dm.iconData,
+                                        color: isSelected ? dm.mauSacColor : MauSac.chuPhu,
+                                        size: 24,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        dm.tenDanhMuc,
+                                        style: TextStyle(
+                                          color: isSelected ? dm.mauSacColor : MauSac.chuPhu,
+                                          fontSize: 11,
+                                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                child: Column(
-                                  children: [
-                                    Icon(
-                                      icon,
-                                      color: isSelected ? MauSac.chuDao : MauSac.chuPhu,
-                                      size: 24,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      label,
-                                      style: TextStyle(
-                                        color: isSelected ? MauSac.chuDao : MauSac.chuPhu,
-                                        fontSize: 11,
-                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }).toList(),
+                              );
+                            }).toList(),
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ),
@@ -557,7 +575,7 @@ class _ManHinhTaoQuyTietKiemState extends State<ManHinhTaoQuyTietKiem> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text('Trích từ nguồn:', style: TextStyle(color: MauSac.chuPhu, fontSize: 12)),
-                          _dangTaiVi
+                          _dangTaiDuLieu
                               ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: MauSac.chuDao))
                               : PopupMenuButton<TaiKhoanNganHangModel>(
                                   color: MauSac.nenThe,

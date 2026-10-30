@@ -18,6 +18,9 @@ class DuongDanApi {
   /// Bảng lưu trữ phân loại danh mục thu chi
   static const String bangDanhMuc = 'danh_muc';
 
+  /// Bảng lưu trữ phân loại danh mục ngân sách & tiết kiệm
+  static const String bangDanhMucNganSach = 'danh_muc_ngan_sach';
+
   /// Bảng lưu trữ nhật ký giao dịch thu chi
   static const String bangGiaoDich = 'giao_dich';
 

@@ -6,6 +6,7 @@ import '../cau_hinh/duong_dan_api.dart';
 import '../mo_hinh/nguoi_dung_model.dart';
 import '../mo_hinh/tai_khoan_ngan_hang_model.dart';
 import '../mo_hinh/danh_muc_model.dart';
+import '../mo_hinh/danh_muc_ngan_sach_model.dart';
 import '../mo_hinh/giao_dich_model.dart';
 import '../mo_hinh/quy_tiet_kiem_model.dart';
 import '../mo_hinh/lich_su_quy_model.dart';
@@ -632,6 +633,18 @@ class DichVuSupabase {
   // ==========================================
   // QUỸ TIẾT KIỆM & MỤC TIÊU (SAVINGS FUNDS)
   // ==========================================
+
+  /// Lấy danh sách danh mục ngân sách & tiết kiệm từ bảng public.danh_muc_ngan_sach
+  static Future<List<DanhMucNganSachModel>> layDanhSachDanhMucNganSach() async {
+    final nguoiDung = client.auth.currentUser;
+
+    final response = await client
+        .from(DuongDanApi.bangDanhMucNganSach)
+        .select()
+        .or('nguoi_dung_id.is.null${nguoiDung != null ? ',nguoi_dung_id.eq.${nguoiDung.id}' : ''}');
+
+    return (response as List).map((e) => DanhMucNganSachModel.fromJson(e)).toList();
+  }
 
   /// Lấy danh sách các quỹ tiết kiệm
   static Future<List<QuyTietKiemModel>> layDanhSachQuy() async {
