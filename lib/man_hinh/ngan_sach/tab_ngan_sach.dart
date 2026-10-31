@@ -6,8 +6,13 @@ import '../../giao_dien/chuan_thiet_ke/bieu_tuong.dart';
 import '../../giao_dien/chuan_thiet_ke/hinh_anh.dart';
 import '../../giao_dien/chuan_thiet_ke/dap_ung.dart';
 import '../../giao_dien/thong_bao/thong_bao_giua_man_hinh.dart';
+import '../../giao_dien/bottom_sheet/bs_nap_tien_quy.dart';
+import '../../giao_dien/bottom_sheet/bs_rut_tien_quy.dart';
+import '../../giao_dien/bottom_sheet/bs_chinh_han_muc_quy.dart';
+import '../../giao_dien/bottom_sheet/bs_chinh_thoi_han_quy.dart';
 import '../../mo_hinh/quy_tiet_kiem_model.dart';
 import '../../mo_hinh/danh_muc_ngan_sach_model.dart';
+import '../../mo_hinh/tai_khoan_ngan_hang_model.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
 import 'man_hinh_tao_quy_tiet_kiem.dart';
 
@@ -37,22 +42,27 @@ class _TabNganSachState extends State<TabNganSach> {
   /// Danh sách các quỹ tiết kiệm mục tiêu từ Supabase
   List<QuyTietKiemModel> _danhSachQuy = [];
 
+  /// Danh sách ví ngân hàng để trích/nhận tiền
+  List<TaiKhoanNganHangModel> _danhSachVi = [];
+
   @override
   void initState() {
     super.initState();
     _loadDuLieu();
   }
 
-  /// Nạp danh sách danh mục ngân sách & quỹ tiết kiệm từ CSDL Supabase
+  /// Nạp danh sách danh mục ngân sách, quỹ tiết kiệm & ví ngân hàng từ CSDL Supabase
   Future<void> _loadDuLieu() async {
     setState(() => _dangTai = true);
     try {
       final listDM = await DichVuSupabase.layDanhSachDanhMucNganSach();
       final listQuy = await DichVuSupabase.layDanhSachQuy();
+      final listVi = await DichVuSupabase.layDanhSachTaiKhoan();
       if (mounted) {
         setState(() {
           _danhSachDanhMucNganSach = listDM;
           _danhSachQuy = listQuy;
+          _danhSachVi = listVi;
           _dangTai = false;
         });
       }
@@ -69,159 +79,6 @@ class _TabNganSachState extends State<TabNganSach> {
     final RegExp reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
     final String formatted = numStr.replaceAllMapped(reg, (Match m) => '${m[1]}.');
     return '$formatted đ';
-  }
-
-  /// Mở Hộp thoại Nạp tiền vào quỹ
-  Future<void> _moHopThoaiNapTien(QuyTietKiemModel quy) async {
-    final controller = TextEditingController();
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (dialogCtx) {
-        return AlertDialog(
-          backgroundColor: MauSac.nenThe,
-          shape: RoundedRectangleBorder(borderRadius: BoGoc.borderVua),
-          title: Row(
-            children: const [
-              Icon(BieuTuong.napTien, color: MauSac.chuDao, size: 22),
-              SizedBox(width: 8),
-              Text('Nạp tiền vào quỹ', style: TextStyle(color: MauSac.chuChinh, fontSize: 16, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Mục tiêu: ${quy.tenQuy}', style: const TextStyle(color: MauSac.chuPhu, fontSize: 13)),
-              const SizedBox(height: 12),
-              TextField(
-                controller: controller,
-                keyboardType: TextInputType.number,
-                style: const TextStyle(color: MauSac.chuChinh, fontSize: 14),
-                decoration: InputDecoration(
-                  hintText: 'Nhập số tiền nạp (VND)...',
-                  hintStyle: const TextStyle(color: MauSac.chuMo),
-                  filled: true,
-                  fillColor: MauSac.nenNoi,
-                  border: OutlineInputBorder(borderRadius: BoGoc.borderVua, borderSide: const BorderSide(color: MauSac.duongVienNhat)),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogCtx, false),
-              child: const Text('Hủy', style: TextStyle(color: MauSac.chuPhu)),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(dialogCtx, true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: MauSac.chuDao,
-                foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(borderRadius: BoGoc.borderNho),
-              ),
-              child: const Text('Xác nhận nạp', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (confirm == true) {
-      final soTienNap = double.tryParse(controller.text.trim()) ?? 0.0;
-      if (soTienNap <= 0) {
-        _hienThongBao('Vui lòng nhập số tiền nạp hợp lệ!');
-        return;
-      }
-
-      final success = await DichVuSupabase.capNhatSoDuQuy(
-        quyId: quy.id,
-        soTienThayDoi: soTienNap,
-        loaiThaoTac: 'nap_tien',
-        lyDo: 'Nạp tiền vào quỹ ${quy.tenQuy}',
-      );
-
-      if (success) {
-        _hienThongBao('Đã nạp ${_dinhDangTien(soTienNap)} vào ${quy.tenQuy}!', loai: LoaiThongBao.thanhCong);
-        _loadDuLieu();
-      }
-    }
-  }
-
-  /// Mở Hộp thoại Rút tiền khỏi quỹ
-  Future<void> _moHopThoaiRutTien(QuyTietKiemModel quy) async {
-    final controller = TextEditingController();
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (dialogCtx) {
-        return AlertDialog(
-          backgroundColor: MauSac.nenThe,
-          shape: RoundedRectangleBorder(borderRadius: BoGoc.borderVua),
-          title: Row(
-            children: const [
-              Icon(BieuTuong.rutTien, color: MauSac.chiTieu, size: 22),
-              SizedBox(width: 8),
-              Text('Rút tiền khỏi quỹ', style: TextStyle(color: MauSac.chuChinh, fontSize: 16, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Mục tiêu: ${quy.tenQuy} (Khả dụng: ${_dinhDangTien(quy.soTienHienCo)})',
-                  style: const TextStyle(color: MauSac.chuPhu, fontSize: 13)),
-              const SizedBox(height: 12),
-              TextField(
-                controller: controller,
-                keyboardType: TextInputType.number,
-                style: const TextStyle(color: MauSac.chuChinh, fontSize: 14),
-                decoration: InputDecoration(
-                  hintText: 'Nhập số tiền rút (VND)...',
-                  hintStyle: const TextStyle(color: MauSac.chuMo),
-                  filled: true,
-                  fillColor: MauSac.nenNoi,
-                  border: OutlineInputBorder(borderRadius: BoGoc.borderVua, borderSide: const BorderSide(color: MauSac.duongVienNhat)),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogCtx, false),
-              child: const Text('Hủy', style: TextStyle(color: MauSac.chuPhu)),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(dialogCtx, true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: MauSac.chiTieu,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BoGoc.borderNho),
-              ),
-              child: const Text('Xác nhận rút', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (confirm == true) {
-      final soTienRut = double.tryParse(controller.text.trim()) ?? 0.0;
-      if (soTienRut <= 0 || soTienRut > quy.soTienHienCo) {
-        _hienThongBao('Số tiền rút không hợp lệ hoặc vượt quá số dư quỹ!');
-        return;
-      }
-
-      final success = await DichVuSupabase.capNhatSoDuQuy(
-        quyId: quy.id,
-        soTienThayDoi: -soTienRut,
-        loaiThaoTac: 'rut_tien',
-        lyDo: 'Rút tiền khỏi quỹ ${quy.tenQuy}',
-      );
-
-      if (success) {
-        _hienThongBao('Đã rút ${_dinhDangTien(soTienRut)} khỏi ${quy.tenQuy}!', loai: LoaiThongBao.thanhCong);
-        _loadDuLieu();
-      }
-    }
   }
 
   void _hienThongBao(String noiDung, {LoaiThongBao loai = LoaiThongBao.loi}) {
@@ -668,7 +525,17 @@ class _TabNganSachState extends State<TabNganSach> {
                                       icon: BieuTuong.napTien,
                                       nhan: 'Nạp tiền',
                                       color: MauSac.chuDao,
-                                      onTap: () => _moHopThoaiNapTien(quy),
+                                      onTap: () async {
+                                        final res = await BsNapTienQuy.hienThi(
+                                          context,
+                                          quy: quy,
+                                          danhSachVi: _danhSachVi,
+                                        );
+                                        if (res == true) {
+                                          _hienThongBao('Nạp tiền vào ${quy.tenQuy} thành công!', loai: LoaiThongBao.thanhCong);
+                                          _loadDuLieu();
+                                        }
+                                      },
                                     ),
                                   ),
                                   const SizedBox(width: 6),
@@ -677,7 +544,17 @@ class _TabNganSachState extends State<TabNganSach> {
                                       icon: BieuTuong.rutTien,
                                       nhan: 'Rút quỹ',
                                       color: MauSac.chiTieu,
-                                      onTap: () => _moHopThoaiRutTien(quy),
+                                      onTap: () async {
+                                        final res = await BsRutTienQuy.hienThi(
+                                          context,
+                                          quy: quy,
+                                          danhSachVi: _danhSachVi,
+                                        );
+                                        if (res == true) {
+                                          _hienThongBao('Rút quỹ ${quy.tenQuy} thành công!', loai: LoaiThongBao.thanhCong);
+                                          _loadDuLieu();
+                                        }
+                                      },
                                     ),
                                   ),
                                   const SizedBox(width: 6),
@@ -686,7 +563,16 @@ class _TabNganSachState extends State<TabNganSach> {
                                       icon: BieuTuong.nganSach,
                                       nhan: 'Chỉnh hạn...',
                                       color: MauSac.phu,
-                                      onTap: () => _hienThongBao('Chức năng điều chỉnh hạn mức đang được cập nhật!', loai: LoaiThongBao.canhBao),
+                                      onTap: () async {
+                                        final res = await BsChinhHanMucQuy.hienThi(
+                                          context,
+                                          quy: quy,
+                                        );
+                                        if (res == true) {
+                                          _hienThongBao('Cập nhật hạn mức ${quy.tenQuy} thành công!', loai: LoaiThongBao.thanhCong);
+                                          _loadDuLieu();
+                                        }
+                                      },
                                     ),
                                   ),
                                   const SizedBox(width: 6),
@@ -695,7 +581,16 @@ class _TabNganSachState extends State<TabNganSach> {
                                       icon: BieuTuong.dongHo,
                                       nhan: 'Chỉnh thời...',
                                       color: MauSac.chuPhu,
-                                      onTap: () => _hienThongBao('Chức năng điều chỉnh thời hạn đang được cập nhật!', loai: LoaiThongBao.canhBao),
+                                      onTap: () async {
+                                        final res = await BsChinhThoiHanQuy.hienThi(
+                                          context,
+                                          quy: quy,
+                                        );
+                                        if (res == true) {
+                                          _hienThongBao('Cập nhật thời hạn ${quy.tenQuy} thành công!', loai: LoaiThongBao.thanhCong);
+                                          _loadDuLieu();
+                                        }
+                                      },
                                     ),
                                   ),
                                 ],
