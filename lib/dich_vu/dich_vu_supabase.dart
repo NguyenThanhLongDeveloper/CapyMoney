@@ -660,6 +660,24 @@ class DichVuSupabase {
     return (response as List).map((e) => QuyTietKiemModel.fromJson(e)).toList();
   }
 
+  /// Lấy danh sách lịch sử biến động quỹ từ public.lich_su_quy
+  static Future<List<LichSuQuyModel>> layDanhSachLichSuQuy({String? quyId}) async {
+    final nguoiDung = client.auth.currentUser;
+    if (nguoiDung == null) return [];
+
+    var query = client
+        .from(DuongDanApi.bangLichSuQuy)
+        .select()
+        .eq('nguoi_dung_id', nguoiDung.id);
+
+    if (quyId != null && quyId.isNotEmpty) {
+      query = query.eq('quy_id', quyId);
+    }
+
+    final response = await query.order('tao_luc', ascending: false);
+    return (response as List).map((e) => LichSuQuyModel.fromJson(e)).toList();
+  }
+
   /// Tạo khoản tiết kiệm / mục tiêu mới
   static Future<QuyTietKiemModel> taoQuyMoi(QuyTietKiemModel model) async {
     final response = await client

@@ -15,6 +15,7 @@ import '../../mo_hinh/danh_muc_ngan_sach_model.dart';
 import '../../mo_hinh/tai_khoan_ngan_hang_model.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
 import 'man_hinh_tao_quy_tiet_kiem.dart';
+import 'man_hinh_lich_su_quy.dart';
 
 /// Tab 2: Màn Hình Ngân Sách & Mục Tiêu Tiết Kiệm (Savings & Goals Screen)
 /// 
@@ -603,7 +604,7 @@ class _TabNganSachState extends State<TabNganSach> {
 
                   const SizedBox(height: KhoangCach.lon),
 
-                  // SECTION 3: NÚT CTA "+ TẠO KHOẢN TIẾT KIỆM / MỤC TIÊU MỚI"
+                  // SECTION 3: NÚT CTA "+ TẠO KHOẢN TIẾT KIỆM" VÀ "XEM LỊCH SỬ BIẾN ĐỘNG QUỸ"
                   SizedBox(
                     width: double.infinity,
                     height: 52,
@@ -622,7 +623,7 @@ class _TabNganSachState extends State<TabNganSach> {
                       icon: const Icon(BieuTuong.themGiaoDich, color: Colors.black, size: 20),
                       label: const FittedBox(
                         child: Text(
-                          '+ Tạo khoản tiết kiệm / Mục tiêu mới',
+                          'Tạo khoản tiết kiệm / Mục tiêu mới',
                           style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black),
                         ),
                       ),
@@ -630,6 +631,35 @@ class _TabNganSachState extends State<TabNganSach> {
                         backgroundColor: MauSac.chuDao,
                         foregroundColor: Colors.black,
                         elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BoGoc.borderTron),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: KhoangCach.vua),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ManHinhLichSuQuy(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(BieuTuong.dongHo, color: MauSac.chuDao, size: 20),
+                      label: const FittedBox(
+                        child: Text(
+                          'Xem lịch sử biến động quỹ',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: MauSac.chuChinh),
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: MauSac.nenThe,
+                        side: const BorderSide(color: MauSac.duongVienNhat),
                         shape: RoundedRectangleBorder(borderRadius: BoGoc.borderTron),
                       ),
                     ),

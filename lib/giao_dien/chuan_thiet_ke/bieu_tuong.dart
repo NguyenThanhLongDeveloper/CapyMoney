@@ -121,6 +121,9 @@ class BieuTuong {
   /// Sức khỏe, thuốc men
   static const IconData sucKhoe = Icons.medical_services_rounded;
 
+  /// Cờ về đích, mục tiêu
+  static const IconData coVeDich = Icons.flag_rounded;
+
   /// thưởng, thu nhập phụ
   static const IconData thuong = Icons.category_rounded;
 
