@@ -12,10 +12,10 @@ import '../giao_dich/man_hinh_them_giao_dich.dart';
 /// 
 /// Chứa Bottom Navigation Bar 4 Tab chuẩn và Nút Floating Action Button (+) trung tâm.
 class ManHinhChinhTab extends StatefulWidget {
-  /// Vị trí Tab mở ra ban đầu (Mặc định Tab 3 - Màn hình "Tôi")
+  /// Vị trí Tab mở ra ban đầu (Mặc định Tab 0 - Màn hình "Tổng quan")
   final int viTriTabBanDau;
 
-  const ManHinhChinhTab({super.key, this.viTriTabBanDau = 3});
+  const ManHinhChinhTab({super.key, this.viTriTabBanDau = 0});
 
   @override
   State<ManHinhChinhTab> createState() => _ManHinhChinhTabState();
@@ -98,35 +98,29 @@ class _ManHinhChinhTabState extends State<ManHinhChinhTab> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                // Tab 1: Tổng quan
-                _taoItemTab(
-                  index: 0,
-                  icon: BieuTuong.tongQuan,
-                  nhan: 'Tổng quan',
+                // 2 Tab bên trái
+                Expanded(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _taoItemTab(index: 0, icon: BieuTuong.tongQuan, nhan: 'Tổng quan'),
+                      _taoItemTab(index: 1, icon: BieuTuong.nganSach, nhan: 'Ngân sách'),
+                    ],
+                  ),
                 ),
 
-                // Tab 2: Ngân sách
-                _taoItemTab(
-                  index: 1,
-                  icon: BieuTuong.nganSach,
-                  nhan: 'Ngân sách',
-                ),
+                // Khoảng trống ở giữa đúng bằng kích thước nút nổi để tạo độ thoáng
+                const SizedBox(width: 64),
 
-                // Khoảng trống chừa vị trí cho nút '+' Trung tâm
-                const SizedBox(width: 48),
-
-                // Tab 3: Báo cáo
-                _taoItemTab(
-                  index: 2,
-                  icon: BieuTuong.baoCao,
-                  nhan: 'Báo cáo',
-                ),
-
-                // Tab 4: Tôi
-                _taoItemTab(
-                  index: 3,
-                  icon: BieuTuong.taiKhoan,
-                  nhan: 'Tôi',
+                // 2 Tab bên phải
+                Expanded(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _taoItemTab(index: 2, icon: BieuTuong.baoCao, nhan: 'Báo cáo'),
+                      _taoItemTab(index: 3, icon: BieuTuong.taiKhoan, nhan: 'Tôi'),
+                    ],
+                  ),
                 ),
               ],
             ),

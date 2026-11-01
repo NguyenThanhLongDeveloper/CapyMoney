@@ -71,7 +71,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
 
         if (!mounted) return;
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const ManHinhChinhTab()),
+          MaterialPageRoute(builder: (_) => const ManHinhChinhTab(viTriTabBanDau: 0)),
         );
       }
     });
@@ -164,7 +164,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
         await _luuThongTinGhiNho(email, matKhau);
         if (!mounted) return;
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const ManHinhChinhTab()),
+          MaterialPageRoute(builder: (_) => const ManHinhChinhTab(viTriTabBanDau: 0)),
         );
       }
     } on AuthException catch (e) {
@@ -248,7 +248,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
 
             if (!mounted) return;
             Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const ManHinhChinhTab()),
+              MaterialPageRoute(builder: (_) => const ManHinhChinhTab(viTriTabBanDau: 0)),
             );
           } catch (_) {
             if (!mounted) return;
@@ -258,7 +258,7 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
           await prefs.setString('capymoney_da_dang_nhap_lan_cuoi_email', emailTarget);
           if (!mounted) return;
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const ManHinhChinhTab()),
+            MaterialPageRoute(builder: (_) => const ManHinhChinhTab(viTriTabBanDau: 0)),
           );
         }
       }
@@ -309,86 +309,30 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
               children: [
                 const SizedBox(height: KhoangCach.vua),
 
-                // TOP HEADER: BADGE "⚡ Đăng nhập tài khoản" CĂN GIỮA VÀ NÚT "Đổi tài khoản" NẰM BÊN PHẢI
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Badge "⚡ Đăng nhập tài khoản" căn giữa chính xác Center
-                    Center(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: MauSac.chuDao,
-                          borderRadius: BoGoc.borderTron,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: const [
-                            Icon(Icons.bolt_rounded, color: Colors.black, size: 16),
-                            SizedBox(width: 4),
-                            Text(
-                              'Đăng nhập tài khoản',
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                // TOP HEADER: BADGE "⚡ Đăng nhập tài khoản" CĂN GIỮA
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: MauSac.chuDao,
+                      borderRadius: BoGoc.borderTron,
                     ),
-
-                    // Nút "Đổi tài khoản" tách biệt nằm BÊN PHẢI (Chỉ hiển thị khi có Thẻ Avatar Profile Badge)
-                    if (hienProfileBadge)
-                      Positioned(
-                        right: 0,
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _hienFormNhapEmailKhac = true;
-                              _emailController.clear();
-                            });
-                          },
-                          child: Row(
-                            children: const [
-                              Icon(Icons.swap_horiz_rounded, color: MauSac.chuDao, size: 16),
-                              SizedBox(width: 4),
-                              Text(
-                                'Đổi tài khoản',
-                                style: TextStyle(
-                                  color: MauSac.chuDao,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(Icons.bolt_rounded, color: Colors.black, size: 16),
+                        SizedBox(width: 4),
+                        Text(
+                          'Đăng nhập tài khoản',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      )
-                    else if (_hienFormNhapEmailKhac)
-                      Positioned(
-                        right: 0,
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _hienFormNhapEmailKhac = false;
-                              _emailController.text = _emailDaDangNhapLanCuoi;
-                            });
-                          },
-                          child: Row(
-                            children: const [
-                              Icon(Icons.arrow_back_rounded, color: MauSac.chuPhu, size: 14),
-                              SizedBox(width: 4),
-                              Text(
-                                'Quay lại',
-                                style: TextStyle(color: MauSac.chuPhu, fontSize: 12),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                  ],
+                      ],
+                    ),
+                  ),
                 ),
 
                 const SizedBox(height: KhoangCach.lon),
@@ -523,7 +467,38 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
                 const SizedBox(height: KhoangCach.lon),
 
                 // THẺ AVATAR PROFILE BADGE LẦN ĐĂNG NHẬP GẦN NHẤT HOẶC Ô NHẬP EMAIL
-                if (hienProfileBadge)
+                if (hienProfileBadge) ...[
+                  // Nút "Đổi tài khoản" nằm BÊN PHẢI PHÍA TRÊN THẺ
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _hienFormNhapEmailKhac = true;
+                            _emailController.clear();
+                          });
+                        },
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(Icons.swap_horiz_rounded, color: MauSac.chuDao, size: 14),
+                            SizedBox(width: 4),
+                            Text(
+                              'Đổi tài khoản',
+                              style: TextStyle(
+                                color: MauSac.chuDao,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
                   // Thẻ Avatar + Họ tên + Gmail đã đăng nhập lần gần nhất
                   Container(
                     padding: KhoangCach.lToanBoChuan,
@@ -563,6 +538,8 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
                                 _tenDaDangNhapLanCuoi.isNotEmpty
                                     ? _tenDaDangNhapLanCuoi
                                     : 'Chủ tài khoản',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   color: MauSac.chuChinh,
                                   fontSize: 15,
@@ -572,6 +549,8 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
                               const SizedBox(height: 2),
                               Text(
                                 _emailDaDangNhapLanCuoi,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   color: MauSac.chuPhu,
                                   fontSize: 12,
@@ -597,7 +576,8 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
                         ),
                       ],
                     ),
-                  )
+                  ),
+                ]
                 else
                   // Form nhập địa chỉ Email mới
                   Column(
@@ -605,15 +585,35 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
                     children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: const [
-                          Text(
+                        children: [
+                          const Text(
                             'Địa chỉ Email (Gmail)',
                             style: TextStyle(color: MauSac.chuChinh, fontSize: 13, fontWeight: FontWeight.bold),
                           ),
-                          Text(
-                            'Bắt buộc',
-                            style: TextStyle(color: MauSac.chuPhu, fontSize: 11),
-                          ),
+                          if (_hienFormNhapEmailKhac && _emailDaDangNhapLanCuoi.isNotEmpty)
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _hienFormNhapEmailKhac = false;
+                                  _emailController.text = _emailDaDangNhapLanCuoi;
+                                });
+                              },
+                              child: Row(
+                                children: const [
+                                  Icon(Icons.arrow_back_rounded, color: MauSac.chuPhu, size: 14),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Quay lại',
+                                    style: TextStyle(color: MauSac.chuPhu, fontSize: 12, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            const Text(
+                              'Bắt buộc',
+                              style: TextStyle(color: MauSac.chuPhu, fontSize: 11),
+                            ),
                         ],
                       ),
                       const SizedBox(height: 6),
