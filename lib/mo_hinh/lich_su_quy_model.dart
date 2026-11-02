@@ -14,7 +14,7 @@ class LichSuQuyModel {
   /// Nguồn tiền liên quan (Tài khoản ngân hàng / Ví)
   final String? taiKhoanId;
 
-  /// Loai thao tác: `nap_tien` hoặc `rut_tien`
+  /// Loại thao tác: `nap_tien` hoặc `rut_tien`
   final String loaiThaoTac;
 
   /// Số tiền biến động
@@ -40,6 +40,12 @@ class LichSuQuyModel {
     this.maThamChieu,
     this.taoLuc,
   });
+
+  /// Kiểm tra có phải thao tác nạp tiền
+  bool get isNapTien => loaiThaoTac == 'nap_tien';
+
+  /// Kiểm tra có phải thao tác rút tiền
+  bool get isRutTien => loaiThaoTac == 'rut_tien';
 
   /// Khởi tạo đối tượng LichSuQuyModel từ bản ghi JSON của Supabase
   factory LichSuQuyModel.fromJson(Map<String, dynamic> json) {

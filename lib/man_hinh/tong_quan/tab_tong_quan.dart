@@ -5,18 +5,23 @@ import '../../giao_dien/chuan_thiet_ke/khoang_cach.dart';
 import '../../giao_dien/chuan_thiet_ke/bieu_tuong.dart';
 import '../../giao_dien/chuan_thiet_ke/hinh_anh.dart';
 import '../../giao_dien/chuan_thiet_ke/dap_ung.dart';
-import '../../mo_hinh/giao_dich_model.dart';
 import '../../mo_hinh/tai_khoan_ngan_hang_model.dart';
 import '../../mo_hinh/danh_muc_model.dart';
+import '../../mo_hinh/danh_muc_ngan_sach_model.dart';
+import '../../mo_hinh/quy_tiet_kiem_model.dart';
+import '../../mo_hinh/lich_su_quy_model.dart';
+import '../../mo_hinh/giao_dich_hop_nhat_model.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
 import '../giao_dich/man_hinh_danh_sach_giao_dich.dart';
 import '../giao_dich/man_hinh_chi_tiet_giao_dich.dart';
 
 /// Tab 1: Màn Hình Tổng Quan Tài Chính (Dashboard Screen)
 /// 
-/// Khớp 100% giao diện mockup: Thẻ Tổng tài sản khả dụng + 👁 Ẩn/Hiện số tiền, 
-/// Thẻ Thu nhập tháng & Chi tiêu tháng, Biểu đồ thanh Chi tiêu tuần này (T2 -> CN),
-/// và Danh sách Giao dịch gần đây.
+/// Khớp 100% giao diện Kinetic Neo-Fintech Dark Mode:
+/// Card 1: Tổng tài sản khả dụng + Carousel Lướt Trái/Phải xem các ví ngân hàng, 👁 Ẩn/Hiện số tiền,
+/// Card 2: Thu nhập tháng & Chi tiêu tháng thực tế (không dính giao dịch nạp/rút quỹ),
+/// Card 3: Biểu đồ thanh Chi tiêu tuần này (T2 -> CN),
+/// và Danh sách Giao dịch gần đây hợp nhất (Hợp nhất Thu chi + Nạp/Rút quỹ).
 class TabTongQuan extends StatefulWidget {
   const TabTongQuan({super.key});
 
@@ -28,14 +33,17 @@ class _TabTongQuanState extends State<TabTongQuan> {
   /// Cờ ẩn/hiện số tiền tài sản
   bool _anSoTien = false;
 
+  /// Bộ điều khiển PageView lướt thẻ tài sản
+  final PageController _cardPageController = PageController();
+
+  /// Index thẻ tài khoản đang xem (0: Ví 1, 1: Ví 2...)
+  int _trangThoatHienTai = 0;
+
   /// Index ngày đang chọn trong tuần (0: T2, 1: T3, ... 4: T6, 5: T7, 6: CN)
   int _ngayChonIndex = 4; // Mặc định T6
 
   /// Trạng thái đang tải từ CSDL
   bool _dangTai = true;
-
-  /// Tổng tài sản khả dụng
-  double _tongTaiSan = 0.0;
 
   /// Thu nhập tháng này
   double _thuNhapThang = 0.0;
@@ -52,11 +60,14 @@ class _TabTongQuanState extends State<TabTongQuan> {
   /// Danh sách tài khoản / ví ngân hàng
   List<TaiKhoanNganHangModel> _danhSachVi = [];
 
-  /// Danh sách giao dịch gần đây
-  List<GiaoDichModel> _danhSachGiaoDich = [];
-
-  /// Danh sách danh mục thu chi từ CSDL
+  /// Danh sách danh mục thu chi
   List<DanhMucModel> _danhSachDanhMuc = [];
+
+  /// Danh sách danh mục ngân sách / quỹ
+  List<DanhMucNganSachModel> _danhSachDanhMucNganSach = [];
+
+  /// Danh sách giao dịch hợp nhất trên Timeline
+  List<GiaoDichHopNhatModel> _danhSachGiaoDichHopNhat = [];
 
   @override
   void initState() {
@@ -66,6 +77,12 @@ class _TabTongQuanState extends State<TabTongQuan> {
     _loadDuLieuDashboard();
   }
 
+  @override
+  void dispose() {
+    _cardPageController.dispose();
+    super.dispose();
+  }
+
   /// Nạp dữ liệu thực tế từ CSDL Supabase
   Future<void> _loadDuLieuDashboard() async {
     setState(() => _dangTai = true);
@@ -73,25 +90,23 @@ class _TabTongQuanState extends State<TabTongQuan> {
       final viList = await DichVuSupabase.layDanhSachTaiKhoan();
       final giaoDichList = await DichVuSupabase.layDanhSachGiaoDich();
       final danhMucList = await DichVuSupabase.layDanhSachDanhMuc();
+      final danhMucNganSachList = await DichVuSupabase.layDanhSachDanhMucNganSach();
+      final quyList = await DichVuSupabase.layDanhSachQuy();
+
+      // Nạp lịch sử nạp rút quỹ từng quỹ
+      final List<LichSuQuyModel> lichSuQuyTatCa = [];
+      for (var q in quyList) {
+        final ls = await DichVuSupabase.layDanhSachLichSuQuy(quyId: q.id);
+        lichSuQuyTatCa.addAll(ls);
+      }
 
       if (mounted) {
         setState(() {
           _danhSachVi = viList;
-          _danhSachGiaoDich = giaoDichList;
           _danhSachDanhMuc = danhMucList;
+          _danhSachDanhMucNganSach = danhMucNganSachList;
 
-          // Lấy số dư tài khoản ngân hàng mặc định (la_nhan_chinh == true)
-          if (viList.isNotEmpty) {
-            final viMacDinh = viList.firstWhere(
-              (vi) => vi.laNhanChinh,
-              orElse: () => viList.first,
-            );
-            _tongTaiSan = viMacDinh.soDu;
-          } else {
-            _tongTaiSan = 0.0;
-          }
-
-          // Tính thu nhập và chi tiêu tháng này từ toàn bộ giao dịch CSDL trong tháng hiện tại (Không phân biệt ví)
+          // 1. Tính thu nhập và chi tiêu tháng này từ giao_dich
           final now = DateTime.now();
           double sumThu = 0.0;
           double sumChi = 0.0;
@@ -109,7 +124,7 @@ class _TabTongQuanState extends State<TabTongQuan> {
           _thuNhapThang = sumThu;
           _chiTieuThang = sumChi;
 
-          // 3. Tính chi tiêu tuần này (Từ Thứ 2 đến Chủ nhật của tuần hiện tại)
+          // 2. Tính chi tiêu tuần này (Từ Thứ 2 đến Chủ nhật của tuần hiện tại)
           final dtMonday = DateTime(now.year, now.month, now.day)
               .subtract(Duration(days: now.weekday - 1));
 
@@ -132,13 +147,37 @@ class _TabTongQuanState extends State<TabTongQuan> {
           _chiTieuCacNgay = chiTieuTuanList;
           _chiTieuTuanNay = chiTieuTuanList.fold(0.0, (sum, val) => sum + val);
 
-          // 4. Lọc danh sách giao dịch gần đây chỉ thuộc THÁNG HIỆN TẠI (Tất cả tài khoản)
-          final List<GiaoDichModel> giaoDichThangNay = giaoDichList.where((gd) {
-            return gd.ngayGiaoDich.month == now.month &&
-                gd.ngayGiaoDich.year == now.year;
-          }).toList();
+          // 3. Hợp nhất Dòng thời gian giao dịch (Thu/Chi + Nạp/Rút quỹ thuộc tháng hiện tại)
+          final List<GiaoDichHopNhatModel> listHopNhat = [];
 
-          _danhSachGiaoDich = giaoDichThangNay;
+          // Thêm các bản ghi thu/chi từ giao_dich
+          for (var gd in giaoDichList) {
+            if (gd.ngayGiaoDich.month == now.month && gd.ngayGiaoDich.year == now.year) {
+              listHopNhat.add(GiaoDichHopNhatModel.fromGiaoDich(gd));
+            }
+          }
+
+          // Thêm các bản ghi nạp/rút quỹ từ lich_su_quy
+          for (var ls in lichSuQuyTatCa) {
+            final dtLs = ls.taoLuc ?? DateTime.now();
+            if (dtLs.month == now.month && dtLs.year == now.year) {
+              final quyMatch = quyList.timTheoId(ls.quyId);
+              final String dmNganSachId = quyMatch?.danhMucNganSachId ?? '';
+              final String tenQuyStr = quyMatch?.tenQuy ?? 'Quỹ tích lũy';
+
+              listHopNhat.add(
+                GiaoDichHopNhatModel.fromLichSuQuy(
+                  ls: ls,
+                  danhMucNganSachId: dmNganSachId,
+                  tenQuy: tenQuyStr,
+                ),
+              );
+            }
+          }
+
+          // Sắp xếp thời gian giảm dần
+          listHopNhat.sort((a, b) => b.thoiGian.compareTo(a.thoiGian));
+          _danhSachGiaoDichHopNhat = listHopNhat;
 
           _dangTai = false;
         });
@@ -179,7 +218,7 @@ class _TabTongQuanState extends State<TabTongQuan> {
     return list[index % 7];
   }
 
-  /// Tên ngày đầy đủ kèm ngày tháng năm chính xác (Ví dụ: 'T6 (Hôm nay, 17/10/2026)')
+  /// Tên ngày đầy đủ kèm ngày tháng năm chính xác
   String _layTenNgayFull(int index) {
     final now = DateTime.now();
     final weekdayNowIndex = now.weekday - 1;
@@ -196,28 +235,6 @@ class _TabTongQuanState extends State<TabTongQuan> {
 
   @override
   Widget build(BuildContext context) {
-    final viMacDinh = _danhSachVi.firstWhere(
-      (vi) => vi.laNhanChinh,
-      orElse: () => _danhSachVi.isNotEmpty
-          ? _danhSachVi.first
-          : TaiKhoanNganHangModel(
-              id: '',
-              nguoiDungId: '',
-              tenNganHang: '',
-              soTaiKhoan: '',
-              tenChuTaiKhoan: '',
-              soDu: 0,
-            ),
-    );
-
-    final String tenChuTaiKhoan = viMacDinh.tenChuTaiKhoan.isNotEmpty
-        ? viMacDinh.tenChuTaiKhoan.toUpperCase()
-        : 'TRAN THI MAI';
-
-    final String tenViPrimary = viMacDinh.soTaiKhoan.isNotEmpty
-        ? '${viMacDinh.tenNganHang} • • • • ${viMacDinh.soTaiKhoan.length >= 4 ? viMacDinh.soTaiKhoan.substring(viMacDinh.soTaiKhoan.length - 4) : viMacDinh.soTaiKhoan}'
-        : 'VCB • • • • 8912';
-
     return Scaffold(
       backgroundColor: MauSac.nenChinh,
       appBar: AppBar(
@@ -281,10 +298,10 @@ class _TabTongQuanState extends State<TabTongQuan> {
                 children: [
                   const SizedBox(height: KhoangCach.nho),
 
-                  // CARD 1: TỔNG TÀI SẢN KHẢ DỤNG
+                  // CARD 1: TỔNG TÀI SẢN KHẢ DỤNG (LƯỚI TRÁI PHẢI XEM TỪNG VÍ NGÂN HÀNG)
                   Container(
                     width: double.infinity,
-                    padding: KhoangCach.lToanBoLon,
+                    height: 186,
                     decoration: BoxDecoration(
                       color: MauSac.nenThe,
                       borderRadius: BoGoc.borderLon,
@@ -296,77 +313,181 @@ class _TabTongQuanState extends State<TabTongQuan> {
                         ),
                       ],
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Stack(
                       children: [
-                        // Hàng 1: Label + Eye Icon Toggle
-                        Row(
-                          children: [
-                            const Text(
-                              'Tổng tài sản khả dụng',
-                              style: TextStyle(
-                                color: MauSac.chuPhu,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
+                        PageView.builder(
+                          controller: _cardPageController,
+                          onPageChanged: (idx) => setState(() => _trangThoatHienTai = idx),
+                          itemCount: _danhSachVi.isNotEmpty ? _danhSachVi.length : 1,
+                          itemBuilder: (context, index) {
+                            if (_danhSachVi.isEmpty) {
+                              return Padding(
+                                padding: KhoangCach.lToanBoLon,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        const Text(
+                                          'Tổng tài sản khả dụng',
+                                          style: TextStyle(
+                                            color: MauSac.chuPhu,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        GestureDetector(
+                                          onTap: () => setState(() => _anSoTien = !_anSoTien),
+                                          child: Icon(
+                                            _anSoTien ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                            color: MauSac.chuPhu,
+                                            size: 16,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      _dinhDangTien(0.0),
+                                      style: const TextStyle(
+                                        fontSize: 32,
+                                        fontWeight: FontWeight.bold,
+                                        color: MauSac.chuChinh,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Row(
+                                      children: const [
+                                        Icon(Icons.credit_card_rounded, color: MauSac.chuDao, size: 18),
+                                        SizedBox(width: 6),
+                                        Text(
+                                          'Chưa liên kết tài khoản / ví nào',
+                                          style: TextStyle(
+                                            color: MauSac.chuPhu,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+
+                            final vi = _danhSachVi[index];
+                            final String soCuoi = vi.soTaiKhoan.length >= 4
+                                ? vi.soTaiKhoan.substring(vi.soTaiKhoan.length - 4)
+                                : vi.soTaiKhoan;
+
+                            final String tenViPrimary = vi.soTaiKhoan.isNotEmpty
+                                ? '${vi.tenNganHang} • • • • $soCuoi'
+                                : 'VCB • • • • 8912';
+
+                            final String tenChuTaiKhoan = vi.tenChuTaiKhoan.isNotEmpty
+                                ? vi.tenChuTaiKhoan.toUpperCase()
+                                : 'CHỦ TÀI KHOẢN';
+
+                            return Padding(
+                              padding: KhoangCach.lToanBoLon,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text(
+                                        'Tổng tài sản khả dụng',
+                                        style: TextStyle(
+                                          color: MauSac.chuPhu,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      GestureDetector(
+                                        onTap: () => setState(() => _anSoTien = !_anSoTien),
+                                        child: Icon(
+                                          _anSoTien ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                          color: MauSac.chuPhu,
+                                          size: 16,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    _dinhDangTien(vi.soDu),
+                                    style: const TextStyle(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.bold,
+                                      color: MauSac.chuChinh,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.credit_card_rounded, color: MauSac.chuDao, size: 18),
+                                          const SizedBox(width: 6),
+                                          Expanded(
+                                            child: Text(
+                                              tenViPrimary,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                color: MauSac.chuPhu,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        tenChuTaiKhoan,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: MauSac.chuPhu,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 0.8,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            GestureDetector(
-                              onTap: () => setState(() => _anSoTien = !_anSoTien),
-                              child: Icon(
-                                _anSoTien ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                                color: MauSac.chuPhu,
-                                size: 16,
-                              ),
-                            ),
-                          ],
+                            );
+                          },
                         ),
 
-                        const SizedBox(height: 10),
-
-                        // Hàng 2: Số tiền tài sản cỡ lớn
-                        Text(
-                          _dinhDangTien(_tongTaiSan),
-                          style: const TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: MauSac.chuChinh,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Hàng 3: Thẻ Ví VCB + Tên chủ tài khoản (Sắp xếp theo cột dọc)
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start, // Canh lề trái (hoặc dùng CrossAxisAlignment.center nếu muốn căn giữa)
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(Icons.credit_card_rounded, color: MauSac.chuDao, size: 18),
-                                const SizedBox(width: 6),
-                                Text(
-                                  tenViPrimary,
-                                  style: const TextStyle(
-                                    color: MauSac.chuPhu,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
+                        // PAGE INDICATOR DOTS KHI CÓ TỪ 2 VÍ TRỞ LÊN
+                        if (_danhSachVi.length > 1)
+                          Positioned(
+                            bottom: 16,
+                            right: 18,
+                            child: Row(
+                              children: List.generate(
+                                _danhSachVi.length,
+                                (dotIdx) => Container(
+                                  margin: const EdgeInsets.only(left: 4),
+                                  width: _trangThoatHienTai == dotIdx ? 16 : 6,
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    color: _trangThoatHienTai == dotIdx ? MauSac.chuDao : MauSac.nenNoi,
+                                    borderRadius: BorderRadius.circular(3),
                                   ),
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 4), // Khoảng cách giữa tên ví và tên chủ tài khoản
-                            Text(
-                              tenChuTaiKhoan,
-                              style: const TextStyle(
-                                color: MauSac.chuPhu,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.8,
                               ),
                             ),
-                          ],
-                        ),
+                          ),
                       ],
                     ),
                   ),
@@ -576,22 +697,22 @@ class _TabTongQuanState extends State<TabTongQuan> {
 
                         // Footer chi tiết ngày đang xem
                         Container(
-                          width: double.infinity, // Mở rộng hết chiều ngang để dễ căn giữa nếu cần
+                          width: double.infinity,
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           decoration: BoxDecoration(
                             color: MauSac.nenNoi,
                             borderRadius: BoGoc.borderVua,
                           ),
                           child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center, // Căn giữa theo chiều dọc
-                            crossAxisAlignment: CrossAxisAlignment.center, // Căn giữa theo chiều ngang
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Text(
                                 'Đang xem: ${_layTenNgayFull(_ngayChonIndex)}',
-                                textAlign: TextAlign.center, // Căn giữa text nếu dòng quá dài xuống dòng
+                                textAlign: TextAlign.center,
                                 style: const TextStyle(color: MauSac.chuChinh, fontSize: 12),
                               ),
-                              const SizedBox(height: 4), // Khoảng cách nhỏ giữa 2 dòng text
+                              const SizedBox(height: 4),
                               Text(
                                 _dinhDangTien(_chiTieuCacNgay[_ngayChonIndex]),
                                 textAlign: TextAlign.center,
@@ -610,7 +731,7 @@ class _TabTongQuanState extends State<TabTongQuan> {
 
                   const SizedBox(height: KhoangCach.lon),
 
-                  // SECTION 4: GIAO DỊCH GẦN ĐÂY
+                  // SECTION 4: GIAO DỊCH GẦN ĐÂY (TIMELINE HỢP NHẤT)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -652,107 +773,149 @@ class _TabTongQuanState extends State<TabTongQuan> {
 
                   const SizedBox(height: KhoangCach.nho),
 
-                  // DANH SÁCH CÁC THẺ GIAO DỊCH GẦN ĐÂY
+                  // DANH SÁCH CÁC THẺ GIAO DỊCH HỢP NHẤT GẦN ĐÂY
                   if (_dangTai)
                     const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator(color: MauSac.chuDao)))
-                  else if (_danhSachGiaoDich.isEmpty)
+                  else if (_danhSachGiaoDichHopNhat.isEmpty)
                     _taoEmptyStateChuaCoGiaoDich()
                   else
                     Column(
-                      children: _danhSachGiaoDich.take(5).map((gd) {
-                        final isThu = gd.loaiGiaoDich == 'thu_nhap';
-                        return GestureDetector(
-                          onTap: () async {
-                            final res = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => ManHinhChiTietGiaoDich(giaoDich: gd),
-                              ),
-                            );
-                            if (res == true) {
-                              _loadDuLieuDashboard();
-                            }
-                          },
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 10),
-                            padding: KhoangCach.lToanBoChuan,
-                            decoration: BoxDecoration(
-                              color: MauSac.nenThe,
-                              borderRadius: BoGoc.borderVua,
-                              border: Border.all(color: MauSac.duongVienNhat),
-                            ),
-                            child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: MauSac.nenNoi,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Icon(
-                                  _danhSachDanhMuc.layIcon(gd.danhMucId, isThu: isThu),
-                                  color: isThu ? MauSac.thuNhap : MauSac.phu,
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      _danhSachDanhMuc.layTen(gd.danhMucId, isThu: isThu),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: MauSac.chuChinh,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      gd.ghiChu != null && gd.ghiChu!.trim().isNotEmpty
-                                          ? gd.ghiChu!
-                                          : (isThu ? 'Ghi nhận thu nhập' : 'Ghi nhận chi tiêu'),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(color: MauSac.chuPhu, fontSize: 11),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    '${isThu ? "+" : "-"}${_dinhDangTien(gd.soTien)}',
-                                    style: TextStyle(
-                                      color: isThu ? MauSac.thuNhap : MauSac.chuChinh,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    isThu ? 'Đã nhận' : 'Đã trừ',
-                                    style: const TextStyle(color: MauSac.chuPhu, fontSize: 10),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
+                      children: _danhSachGiaoDichHopNhat.take(5).map((item) {
+                        return _taoItemGiaoDichHopNhat(item);
+                      }).toList(),
+                    ),
 
                   const SizedBox(height: KhoangCach.lon),
                 ],
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  /// Dựng Item Giao dịch Hợp nhất (Thu chi hoặc Nạp/Rút quỹ)
+  Widget _taoItemGiaoDichHopNhat(GiaoDichHopNhatModel item) {
+    IconData iconData;
+    Color iconColor;
+    String tieuDeStr;
+    String loaiBadgeText;
+    Color amountColor;
+    String amountPrefix;
+
+    if (item.isBienDongQuy) {
+      // Biến động nạp / rút quỹ
+      iconData = _danhSachDanhMucNganSach.layIcon(item.danhMucId);
+      iconColor = _danhSachDanhMucNganSach.layMauSac(item.danhMucId);
+      tieuDeStr = item.tieuDe;
+      loaiBadgeText = item.isNapQuy ? 'Nạp quỹ' : 'Rút quỹ';
+      amountColor = MauSac.chuDao;
+      amountPrefix = item.isNapQuy ? '-' : '+';
+    } else {
+      // Giao dịch thu nhập / chi tiêu thực tế
+      iconData = _danhSachDanhMuc.layIcon(item.danhMucId, isThu: item.isThuNhap);
+      iconColor = item.isThuNhap ? MauSac.thuNhap : MauSac.phu;
+      tieuDeStr = _danhSachDanhMuc.layTen(item.danhMucId, isThu: item.isThuNhap);
+      loaiBadgeText = item.isThuNhap ? 'Đã nhận' : 'Đã trừ';
+      amountColor = item.isThuNhap ? MauSac.thuNhap : MauSac.chuChinh;
+      amountPrefix = item.isThuNhap ? '+' : '-';
+    }
+
+    return GestureDetector(
+      onTap: () async {
+        if (item.giaoDichGoc != null) {
+          final res = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ManHinhChiTietGiaoDich(giaoDich: item.giaoDichGoc!),
+            ),
+          );
+          if (res == true) {
+            _loadDuLieuDashboard();
+          }
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: KhoangCach.lToanBoChuan,
+        decoration: BoxDecoration(
+          color: MauSac.nenThe,
+          borderRadius: BoGoc.borderVua,
+          border: Border.all(color: MauSac.duongVienNhat),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: MauSac.nenNoi,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                iconData,
+                color: iconColor,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    tieuDeStr,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: MauSac.chuChinh,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    item.ghiChu,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: MauSac.chuPhu, fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '$amountPrefix${_dinhDangTien(item.soTien)}',
+                  style: TextStyle(
+                    color: amountColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: item.isBienDongQuy
+                        ? MauSac.chuDao.withValues(alpha: 0.15)
+                        : MauSac.nenNoi,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    loaiBadgeText,
+                    style: TextStyle(
+                      color: item.isBienDongQuy ? MauSac.chuDao : MauSac.chuPhu,
+                      fontSize: 9,
+                      fontWeight: item.isBienDongQuy ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
