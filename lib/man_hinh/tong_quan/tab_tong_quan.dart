@@ -339,29 +339,30 @@ class _TabTongQuanState extends State<TabTongQuan> {
                   ),
 
                   // CARD 1: THẺ NGÂN HÀNG KINETIC LƯỚT TRÁI/PHẢI (MOCKUP EXACT)
-                  Container(
+                  SizedBox(
                     width: double.infinity,
                     height: 205,
-                    decoration: BoxDecoration(
-                      color: MauSac.nenThe,
-                      borderRadius: BoGoc.borderLon,
-                      border: Border.all(color: MauSac.duongVienNhat),
-                      boxShadow: [
-                        BoxShadow(
-                          color: MauSac.chuDao.withValues(alpha: 0.06),
-                          blurRadius: 20,
-                          spreadRadius: 1,
-                        ),
-                      ],
-                    ),
                     child: PageView.builder(
                       controller: _cardPageController,
                       onPageChanged: (idx) => setState(() => _trangThoatHienTai = idx),
                       itemCount: _danhSachVi.isNotEmpty ? _danhSachVi.length : 1,
                       itemBuilder: (context, index) {
                         if (_danhSachVi.isEmpty) {
-                          return Padding(
+                          return Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
                             padding: KhoangCach.lToanBoLon,
+                            decoration: BoxDecoration(
+                              color: MauSac.nenThe,
+                              borderRadius: BoGoc.borderLon,
+                              border: Border.all(color: MauSac.duongVienNhat),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: MauSac.chuDao.withValues(alpha: 0.06),
+                                  blurRadius: 20,
+                                  spreadRadius: 1,
+                                ),
+                              ],
+                            ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -394,13 +395,25 @@ class _TabTongQuanState extends State<TabTongQuan> {
                             ? vi.tenChuTaiKhoan.toUpperCase()
                             : 'CHỦ TÀI KHOẢN';
 
-                        return Padding(
+                        return Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
                           padding: KhoangCach.lToanBoLon,
+                          decoration: BoxDecoration(
+                            color: MauSac.nenThe,
+                            borderRadius: BoGoc.borderLon,
+                            border: Border.all(color: MauSac.duongVienNhat),
+                            boxShadow: [
+                              BoxShadow(
+                                color: MauSac.chuDao.withValues(alpha: 0.06),
+                                blurRadius: 20,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              // HÀNG 1: EMV CHIP VÀNG + CONTACTLESS ICON TRÊN BÊN TRÁI & TÊN NGÂN HÀNG BÊN PHẢI
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
