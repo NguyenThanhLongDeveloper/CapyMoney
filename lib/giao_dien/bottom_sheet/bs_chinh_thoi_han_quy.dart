@@ -43,12 +43,13 @@ class _BsChinhThoiHanQuyState extends State<BsChinhThoiHanQuy> {
   @override
   void initState() {
     super.initState();
-    _soThangChon = widget.quy.kyHanThang > 0 ? widget.quy.kyHanThang : 14;
-
     final now = DateTime.now();
-    final targetDate = widget.quy.ngayVeDich ?? DateTime(now.year, now.month + _soThangChon, now.day);
+    final targetDate = widget.quy.ngayVeDich ?? DateTime(now.year, now.month + (widget.quy.kyHanThang > 0 ? widget.quy.kyHanThang : 12), now.day);
     _thangVeDichChon = targetDate.month;
     _namVeDichChon = targetDate.year;
+
+    final diffMonths = (targetDate.year - now.year) * 12 + (targetDate.month - now.month);
+    _soThangChon = diffMonths > 0 ? diffMonths : (widget.quy.kyHanThang > 0 ? widget.quy.kyHanThang : 12);
   }
 
   String _dinhDangTien(double amount) {
@@ -428,7 +429,7 @@ class _BsChinhThoiHanQuyState extends State<BsChinhThoiHanQuy> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('Mức nạp dự kiến:', style: TextStyle(color: MauSac.chuPhu, fontSize: 11)),
+                                    Text('Mức nạp dự kiến (${quy.soTienConLai > 0 ? "còn ${_dinhDangTien(quy.soTienConLai)}" : "đã đạt mục tiêu"}):', style: const TextStyle(color: MauSac.chuPhu, fontSize: 11)),
                                     const SizedBox(height: 2),
                                     Text('~ ${_dinhDangTien(mucNopDukien)} đ/tháng', style: const TextStyle(color: MauSac.chuDao, fontSize: 16, fontWeight: FontWeight.bold)),
                                   ],

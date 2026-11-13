@@ -53,10 +53,20 @@ class QuyTietKiemModel {
   double get soTienConLai =>
       soTienMucTieu > soTienHienCo ? soTienMucTieu - soTienHienCo : 0;
 
-  /// Tính số tiền cần đóng góp / gửi hàng tháng
+  /// Tính số tháng còn lại đến hạn về đích
+  int get soThangConLai {
+    final now = DateTime.now();
+    if (ngayVeDich != null) {
+      final months = (ngayVeDich!.year - now.year) * 12 + (ngayVeDich!.month - now.month);
+      return months > 0 ? months : 1;
+    }
+    return kyHanThang > 0 ? kyHanThang : 1;
+  }
+
+  /// Tính số tiền cần đóng góp / gửi hàng tháng trong số tháng còn lại
   double get soTienCanNopHangThang {
     if (soTienConLai <= 0) return 0.0;
-    final int months = kyHanThang > 0 ? kyHanThang : 12;
+    final int months = soThangConLai;
     return soTienConLai / months;
   }
 
