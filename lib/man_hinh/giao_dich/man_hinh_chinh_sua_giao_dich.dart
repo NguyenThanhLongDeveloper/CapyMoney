@@ -8,6 +8,8 @@ import '../../giao_dien/chuan_thiet_ke/bieu_tuong.dart';
 import '../../giao_dien/chuan_thiet_ke/dap_ung.dart';
 import '../../giao_dien/thong_bao/thong_bao_giua_man_hinh.dart';
 import '../../giao_dien/bottom_sheet/bs_lien_ket_tai_khoan.dart';
+import '../../giao_dien/bottom_sheet/bs_chon_ngay.dart';
+import '../../giao_dien/bottom_sheet/bs_cai_dat_nhac_nho.dart';
 import '../../mo_hinh/danh_muc_model.dart';
 import '../../mo_hinh/tai_khoan_ngan_hang_model.dart';
 import '../../mo_hinh/giao_dich_model.dart';
@@ -193,44 +195,46 @@ class _ManHinhChinhSuaGiaoDichState extends State<ManHinhChinhSuaGiaoDich> {
     }
   }
 
-  /// Chọn ngày giờ phát sinh giao dịch
+  /// Chọn ngày và giờ giao dịch thông qua BsChonNgay & BsCaiDatNhacNho
   Future<void> _chonNgayGiaoDich() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _ngayGiaoDich,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
-      builder: (context, child) {
-        return Theme(
-          data: ThemeData.dark().copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: MauSac.chuDao,
-              onPrimary: Colors.black,
-              surface: MauSac.nenThe,
-              onSurface: MauSac.chuChinh,
-            ),
-            dialogTheme: const DialogThemeData(backgroundColor: MauSac.nenThe),
-          ),
-          child: child!,
-        );
-      },
+    // 1. Mở Bottom Sheet Chọn Ngày Dành Riêng (BsChonNgay)
+    final DateTime? ngaySelected = await BsChonNgay.hienThi(
+      context,
+      ngayBanDau: _ngayGiaoDich,
     );
 
-    if (picked != null) {
-      if (!mounted) return;
-      final TimeOfDay? timePicked = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.fromDateTime(_ngayGiaoDich),
-      );
+    if (ngaySelected == null) return;
 
-      setState(() {
-        _ngayGiaoDich = DateTime(
-          picked.year,
-          picked.month,
-          picked.day,
-          timePicked?.hour ?? _ngayGiaoDich.hour,
-          timePicked?.minute ?? _ngayGiaoDich.minute,
+    if (!mounted) return;
+
+    // 2. Mở Bottom Sheet Cài đặt Nhắc nhở (BsCaiDatNhacNho) để chọn Giờ/Phút
+    final String defaultTimeStr =
+        '${_ngayGiaoDich.hour.toString().padLeft(2, '0')}:${_ngayGiaoDich.minute.toString().padLeft(2, '0')}';
+
+    final gioRes = await BsCaiDatNhacNho.hienThi(
+      context,
+      thoiGianBanDau: defaultTimeStr,
+    );
+
+    DateTime ngayTarget = ngaySelected;
+    if (gioRes != null) {
+      final parts = gioRes.split(':');
+      if (parts.length == 2) {
+        final hour = int.tryParse(parts[0]) ?? _ngayGiaoDich.hour;
+        final minute = int.tryParse(parts[1]) ?? _ngayGiaoDich.minute;
+        ngayTarget = DateTime(
+          ngaySelected.year,
+          ngaySelected.month,
+          ngaySelected.day,
+          hour,
+          minute,
         );
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _ngayGiaoDich = ngayTarget;
       });
     }
   }
