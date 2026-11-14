@@ -11,7 +11,7 @@ import '../../giao_dien/chuan_thiet_ke/hinh_anh.dart';
 import '../../giao_dien/chuan_thiet_ke/bieu_tuong.dart';
 import '../../giao_dien/chuan_thiet_ke/dap_ung.dart';
 import '../../giao_dien/bottom_sheet/bs_lien_ket_tai_khoan.dart';
-import '../../giao_dien/bottom_sheet/bs_cai_dat_nhac_nho.dart';
+import '../../giao_dien/bottom_sheet/bs_chon_gio.dart';
 import '../../giao_dien/thong_bao/thong_bao_giua_man_hinh.dart';
 import '../../cau_hinh/duong_dan_api.dart';
 import '../../mo_hinh/tai_khoan_ngan_hang_model.dart';
@@ -428,9 +428,9 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
     );
   }
 
-  /// Mở Bảng trượt Cài đặt giờ nhắc nhở ghi chép giao dịch (BsCaiDatNhacNho)
+  /// Mở Bảng trượt Chọn giờ nhắc nhở ghi chép giao dịch (BsChonGio)
   Future<void> _chonThoiGianNhacNho() async {
-    final String? gioMoi = await BsCaiDatNhacNho.hienThi(
+    final String? gioMoi = await BsChonGio.hienThi(
       context,
       thoiGianBanDau: _thoiGianNhacNho,
     );

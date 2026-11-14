@@ -9,7 +9,7 @@ import '../../giao_dien/chuan_thiet_ke/dap_ung.dart';
 import '../../giao_dien/thong_bao/thong_bao_giua_man_hinh.dart';
 import '../../giao_dien/bottom_sheet/bs_lien_ket_tai_khoan.dart';
 import '../../giao_dien/bottom_sheet/bs_chon_ngay.dart';
-import '../../giao_dien/bottom_sheet/bs_cai_dat_nhac_nho.dart';
+import '../../giao_dien/bottom_sheet/bs_chon_gio.dart';
 import '../../mo_hinh/danh_muc_model.dart';
 import '../../mo_hinh/tai_khoan_ngan_hang_model.dart';
 import '../../mo_hinh/giao_dich_model.dart';
@@ -207,11 +207,11 @@ class _ManHinhChinhSuaGiaoDichState extends State<ManHinhChinhSuaGiaoDich> {
 
     if (!mounted) return;
 
-    // 2. Mở Bottom Sheet Cài đặt Nhắc nhở (BsCaiDatNhacNho) để chọn Giờ/Phút
+    // 2. Mở Bottom Sheet Chọn Giờ Dành Riêng (BsChonGio) để chọn Giờ/Phút
     final String defaultTimeStr =
         '${_ngayGiaoDich.hour.toString().padLeft(2, '0')}:${_ngayGiaoDich.minute.toString().padLeft(2, '0')}';
 
-    final gioRes = await BsCaiDatNhacNho.hienThi(
+    final gioRes = await BsChonGio.hienThi(
       context,
       thoiGianBanDau: defaultTimeStr,
     );
