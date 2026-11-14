@@ -470,98 +470,6 @@ class _ManHinhChinhSuaGiaoDichState extends State<ManHinhChinhSuaGiaoDich> {
 
                 const SizedBox(height: KhoangCach.lon),
 
-                // SECTION 2: CARD BẢNG SỐ TIỀN CỠ LỚN & CHIP THÊM TIỀN NHANH
-                Container(
-                  width: double.infinity,
-                  padding: KhoangCach.lToanBoLon,
-                  decoration: BoxDecoration(
-                    color: MauSac.nenThe,
-                    borderRadius: BoGoc.borderLon,
-                    border: Border.all(color: colorTheme.withValues(alpha: 0.3), width: 1.5),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(BieuTuong.chamTron, color: colorTheme, size: 8),
-                          const SizedBox(width: 6),
-                          Text(
-                            isChiTieu ? 'KHOẢN CHI TIÊU TỨC THÌ' : 'TIỀN VÀO TÀI KHOẢN',
-                            style: TextStyle(
-                              color: isChiTieu ? MauSac.chuPhu : MauSac.chuDao,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.8,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Hiển thị Số tiền lớn
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Text(
-                            isChiTieu ? '- ' : '+ ',
-                            style: TextStyle(
-                              fontSize: 34,
-                              fontWeight: FontWeight.bold,
-                              color: colorTheme,
-                            ),
-                          ),
-                          Text(
-                            _chuoiSoTienFormatted,
-                            style: TextStyle(
-                              fontSize: 38,
-                              fontWeight: FontWeight.bold,
-                              color: colorTheme,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'đ',
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: colorTheme,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Hàng Chip Cộng Tiền Nhanh & Nút Xóa
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            if (isChiTieu) ...[
-                              _taoChipCongTien('+50k', 50000),
-                              _taoChipCongTien('+100k', 100000),
-                              _taoChipCongTien('+200k', 200000),
-                              _taoChipXoaTrang('Xóa trắng'),
-                            ] else ...[
-                              _taoChipCongTien('+500k', 500000),
-                              _taoChipCongTien('+1M', 1000000),
-                              _taoChipCongTien('+5M', 5000000),
-                              _taoChipCongTien('+10M', 10000000),
-                              _taoChipXoaTrang('⌫ Xóa'),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: KhoangCach.lon),
-
                 // SECTION 3: DANH MỤC LƯỚI O CHỌN THU CHI (2x4 GRID)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -994,6 +902,98 @@ class _ManHinhChinhSuaGiaoDichState extends State<ManHinhChinhSuaGiaoDich> {
                             ],
                           ),
                         ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: KhoangCach.lon),
+
+                // SECTION 2: CARD BẢNG SỐ TIỀN CỠ LỚN & CHIP THÊM TIỀN NHANH
+                Container(
+                  width: double.infinity,
+                  padding: KhoangCach.lToanBoLon,
+                  decoration: BoxDecoration(
+                    color: MauSac.nenThe,
+                    borderRadius: BoGoc.borderLon,
+                    border: Border.all(color: colorTheme.withValues(alpha: 0.3), width: 1.5),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(BieuTuong.chamTron, color: colorTheme, size: 8),
+                          const SizedBox(width: 6),
+                          Text(
+                            isChiTieu ? 'KHOẢN CHI TIÊU TỨC THÌ' : 'TIỀN VÀO TÀI KHOẢN',
+                            style: TextStyle(
+                              color: isChiTieu ? MauSac.chuPhu : MauSac.chuDao,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Hiển thị Số tiền lớn
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(
+                            isChiTieu ? '- ' : '+ ',
+                            style: TextStyle(
+                              fontSize: 34,
+                              fontWeight: FontWeight.bold,
+                              color: colorTheme,
+                            ),
+                          ),
+                          Text(
+                            _chuoiSoTienFormatted,
+                            style: TextStyle(
+                              fontSize: 38,
+                              fontWeight: FontWeight.bold,
+                              color: colorTheme,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'đ',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: colorTheme,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Hàng Chip Cộng Tiền Nhanh & Nút Xóa
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (isChiTieu) ...[
+                              _taoChipCongTien('+50k', 50000),
+                              _taoChipCongTien('+100k', 100000),
+                              _taoChipCongTien('+200k', 200000),
+                              _taoChipXoaTrang('Xóa trắng'),
+                            ] else ...[
+                              _taoChipCongTien('+500k', 500000),
+                              _taoChipCongTien('+1M', 1000000),
+                              _taoChipCongTien('+5M', 5000000),
+                              _taoChipCongTien('+10M', 10000000),
+                              _taoChipXoaTrang('⌫ Xóa'),
+                            ],
+                          ],
+                        ),
                       ),
                     ],
                   ),
