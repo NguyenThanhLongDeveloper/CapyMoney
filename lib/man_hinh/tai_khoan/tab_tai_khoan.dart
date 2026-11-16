@@ -16,6 +16,7 @@ import '../../giao_dien/thong_bao/thong_bao_giua_man_hinh.dart';
 import '../../cau_hinh/duong_dan_api.dart';
 import '../../mo_hinh/tai_khoan_ngan_hang_model.dart';
 import '../../dich_vu/dich_vu_supabase.dart';
+import '../../dich_vu/dich_vu_thong_bao.dart';
 import '../xac_thuc/man_hinh_dang_nhap.dart';
 
 /// Tab 4: Màn hình Tài khoản Cá nhân "Tôi" (Profile & Security Settings)
@@ -409,6 +410,15 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
       await prefs.setBool('capymoney_nhac_nho_bat_$_email', val);
     }
 
+    if (val) {
+      final parts = _thoiGianNhacNho.split(':');
+      final hour = parts.length == 2 ? (int.tryParse(parts[0]) ?? 21) : 21;
+      final minute = parts.length == 2 ? (int.tryParse(parts[1]) ?? 30) : 30;
+      await DichVuThongBao.datLichNhacNhoHangNgay(hour: hour, minute: minute);
+    } else {
+      await DichVuThongBao.huyNhacNho();
+    }
+
     if (user != null) {
       await DichVuSupabase.capNhatCaiDatNhacNho(
         userId: user.id,
@@ -440,6 +450,11 @@ class _TabTaiKhoanState extends State<TabTaiKhoan> {
         _thoiGianNhacNho = gioMoi;
         _nhacNhoGhiChep = true;
       });
+
+      final parts = gioMoi.split(':');
+      final hour = parts.length == 2 ? (int.tryParse(parts[0]) ?? 21) : 21;
+      final minute = parts.length == 2 ? (int.tryParse(parts[1]) ?? 30) : 30;
+      await DichVuThongBao.datLichNhacNhoHangNgay(hour: hour, minute: minute);
 
       final prefs = await SharedPreferences.getInstance();
       final user = DichVuSupabase.nguoiDungHienTai;

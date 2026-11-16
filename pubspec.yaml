@@ -43,6 +43,10 @@ dependencies:
   # Chọn và chụp ảnh đại diện / hóa đơn
   image_picker: ^1.1.2
 
+  # Thông báo đẩy cục bộ & Quản lý múi giờ địa phương (Nhắc nhở ghi chép giao dịch)
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.10.1
+
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8

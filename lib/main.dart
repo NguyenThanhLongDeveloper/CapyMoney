@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'cau_hinh/cau_hinh_supabase.dart';
+import 'dich_vu/dich_vu_thong_bao.dart';
 import 'giao_dien/chuan_thiet_ke/mau_sac.dart';
 import 'giao_dien/chuan_thiet_ke/kieu_chu.dart';
 import 'man_hinh/cho/man_hinh_cho.dart';
@@ -9,11 +10,12 @@ void main() async {
   // Đảm bảo các khung liên kết Flutter Engine được khởi tạo sẵn sàng
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Thử khởi tạo kết nối tới Supabase Backend
+  // Thử khởi tạo kết nối tới Supabase Backend & Dịch vụ Thông báo
   try {
     await CauHinhSupabase.khoiTao();
+    await DichVuThongBao.khoiTao();
   } catch (e) {
-    debugPrint('Cảnh báo khởi tạo Supabase: $e');
+    debugPrint('Cảnh báo khởi tạo Supabase / Thông báo: $e');
   }
 
   // Chạy ứng dụng CapyMoneyApp
