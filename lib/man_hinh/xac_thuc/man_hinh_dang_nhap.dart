@@ -568,25 +568,53 @@ class _ManHinhDangNhapState extends State<ManHinhDangNhap> {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const ManHinhQuenMatKhau()),
-                                );
-                              },
-                              child: const Text(
-                                'Quên mật khẩu?',
-                                style: TextStyle(
-                                  color: MauSac.chuDao,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              GestureDetector(
+                                onTap: () => setState(() => _ghiNhoDangNhap = !_ghiNhoDangNhap),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 20,
+                                      height: 20,
+                                      decoration: BoxDecoration(
+                                        color: _ghiNhoDangNhap ? MauSac.chuDao : Colors.white,
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(
+                                          color: _ghiNhoDangNhap ? MauSac.chuDao : MauSac.duongVien,
+                                        ),
+                                      ),
+                                      child: _ghiNhoDangNhap
+                                          ? const Icon(Icons.check_rounded, color: Colors.white, size: 14)
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      'Ghi nhớ đăng nhập',
+                                      style: TextStyle(color: MauSac.chuChinh, fontSize: 12, fontWeight: FontWeight.w500),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ),
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => const ManHinhQuenMatKhau()),
+                                  );
+                                },
+                                child: const Text(
+                                  'Quên mật khẩu?',
+                                  style: TextStyle(
+                                    color: MauSac.chuDao,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
